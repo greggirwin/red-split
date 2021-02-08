@@ -194,6 +194,47 @@ comment {
 	But it raises a question, because you might want to get word values that
 	refer to them, so you don't have to compose. But that conflicts with splitting
 	at literal word values.
+
+;-------------------------------------------------------------------------------
+
+; "As verbs the difference between split and break is that split is (ergative) of
+; something solid, to divide fully or partly along a more or less straight line
+; while break is (intransitive) to separate into two or more pieces, to fracture
+; or crack, by a process that cannot easily be reversed for reassembly." wikidiff
+
+
+; 'at should implied, because it applies to both 'once and 'every.
+;	- at every
+;	- once at opt [first | last]
+; In a dialected block, it may help readability to include it, but it's a noop.
+
+; split-once-every-delimiter /before /after
+; split-once-at-first-delimiter		delim
+; split-once-at-last-delimiter		delim
+; split-once-at-Nth-delimiter		delim
+
+; split-every-N-items  			part-size	split-into-equal-parts-of-size-N
+; split-into-N-parts			num-parts
+; split-into-sized-parts		part-sizes
+
+; split-once-at-index				index
+; split-once-at-index-from-tail		index
+
+; split-by-predicate				test		always every
+
+
+; integer!:  [once | every | into | Nth]  [lit opt keep]
+; function!: [every]
+; string!:	 [once | every] [before | after | keep]  No INTO because that implies a known number
+; char!:	 [once | every] [before | after | keep]
+; bitset!:	 [once | every] [before | after | keep]
+; block!: [
+;	all ints  [into]
+;	all funcs [every]		partition
+;   delim     [every]
+;
+; no-fill ?
+
 }
 
 filter: function [
@@ -289,57 +330,34 @@ partition: function [   ; GROUP ?
 ;partition/with data [:lesser? :greater?] [3 7]
 ;partition/with data [:lesser? :greater?] 3
 
-
-;
-;collect: function [
-;	"Collect in a new block all the values passed to KEEP function from the body block"
-;	body [block!]	"Block to evaluate"
-;	/into			"Insert into a buffer instead (returns position after insert)"
-;		collected [series!] "The buffer series (modified)"
-;][
-;	keep: func [v /only][either only [append/only collected v][append collected v]]
-;	
-;	unless collected [collected: make block! 16]
-;	parse body rule: [									;-- selective binding (needs BIND/ONLY support)
-;		any [pos: ['keep | 'collected] (pos/1: bind pos/1 'keep) | any-string! | into rule | skip]
-;	]
-;	do body
-;	either into [collected][head collected]
-;]
- 
 ;-------------------------------------------------------------------------------
 
-split-into-N-parts-ctx: context [
-	
-	; The compiler doesn't like funcs in funcs currently, so we're
-	; using a context rather than inlining the fill logic.
-	; Should blocks use none as the fill val?
-	fill-val: does [copy either any-block? series [ [] ][ "" ]]
-	add-fill-val: does [append/only res fill-val]
-	
-	set 'split-into-N-parts function [
-		"If the series can't be evenly split, the last value will be longer"
-		series [series!]
-		parts [integer!]
-	][
-		if parts < 1 [cause-error 'Script 'invalid-arg parts]
-		count: parts - 1
-		part-size: to integer! round/down divide length? series parts
-		if zero? part-size [part-size: 1]
-		res: collect [
-			parse series [
-				count [copy series part-size skip (keep/only series)]
-				copy series to end (keep/only series)
-			]
+split-into-N-parts: function [
+	"If the series can't be evenly split, the last value will be longer"
+	series [series!]
+	parts [integer!]
+	/local p
+][
+	if parts < 1 [cause-error 'Script 'invalid-arg parts]
+	if parts = 1 [return series]
+	count: parts - 1
+	part-size: to integer! round/down divide length? series parts
+	if zero? part-size [part-size: 1]
+	res: collect [
+		parse series [
+			count [copy p part-size skip (keep/only p)]
+			copy p to end (keep/only p)
 		]
-		;-- If the result is too short, i.e., less items than 'size, add
-		;   empty items to fill it to 'size.
-		;   We loop here, because insert/dup doesn't copy the value inserted.
-		if parts > length? res [
-			loop (parts - length? res) [add-fill-val]
-		]
-		
 	]
+	;-- If the result is too short, i.e., less items than 'size, add
+	;   empty items to fill it to 'size.
+	;   We loop here, because insert/dup doesn't copy the value inserted.
+	if parts > length? res [
+		;loop (parts - length? res) [append/only res fill-val series]
+		loop (parts - length? res) [append/only res make series 0]
+	]
+	
+	res
 ]
 
 split-var-parts: function [
@@ -364,50 +382,9 @@ e.g. [
 	split-parts blk [1 -2 3 10]
 ]
 
-;-------------------------------------------------------------------------------
-
-; "As verbs the difference between split and break is that split is (ergative) of
-; something solid, to divide fully or partly along a more or less straight line
-; while break is (intransitive) to separate into two or more pieces, to fracture
-; or crack, by a process that cannot easily be reversed for reassembly." wikidiff
-
-
-; 'at should implied, because it applies to both 'once and 'every.
-;	- at every
-;	- once at opt [first | last]
-; In a dialected block, it may help readability to include it, but it's a noop.
-
-; split-at-every-delimiter /before /after
-; split-once-at-first-delimiter		delim
-; split-once-at-last-delimiter		delim
-; split-once-at-Nth-delimiter		delim
-
-; split-every-N-items  			part-size	split-into-equal-parts-of-size-N
-; split-into-N-parts			num-parts
-; split-into-sized-parts		part-sizes
-
-; split-once-at-index				index
-; split-once-at-index-from-tail		index
-
-; split-by-predicate				test		always every
-
-
-; integer!:  [once | every | into | Nth]  [lit opt keep]
-; function!: [every]
-; string!:	 [once | every] [before | after | keep]  No INTO because that implies a known number
-; char!:	 [once | every] [before | after | keep]
-; bitset!:	 [once | every] [before | after | keep]
-; block!: [
-;	all ints  [into]
-;	all funcs [every]		partition
-;   delim     [every]
-;
-; no-fill ?
-
-
 
 sys-tail: :tail
-split-at: function [
+split-once: function [
 	"Split the series at a position or value, returning the two halves."
 	series [series!]
 	delim  "Delimiting value, or index if an integer"
@@ -434,38 +411,39 @@ split-at: function [
 	]
 ]
 
+split-once-tests: [
+	[split-once [1 2 3 4 5 6 3 7 8] 3]
+	[split-once/tail [1 2 3 4 5 6 3 7 8] 3]
+	[split-once/value [1 2 3 4 5 6 3 7 8] 3]
+	[split-once/value/tail [1 2 3 4 5 6 3 7 8] 3]
+	[split-once/last [1 2 3 4 5 6 3 7 8] 3]
+	[split-once/last/tail [1 2 3 4 5 6 3 7 8] 3]
 
-split-at-tests: [
-	[split-at [1 2 3 4 5 6 3 7 8] 3]
-	[split-at/tail [1 2 3 4 5 6 3 7 8] 3]
-	[split-at/value [1 2 3 4 5 6 3 7 8] 3]
-	[split-at/value/tail [1 2 3 4 5 6 3 7 8] 3]
-	[split-at/last [1 2 3 4 5 6 3 7 8] 3]
-	[split-at/last/tail [1 2 3 4 5 6 3 7 8] 3]
+	[split-once [1 2 3 4 5 6 3 7 8] -1]
+	[split-once [1 2 3 4 5 6 3 7 8] 0]
+	[split-once [1 2 3 4 5 6 3 7 8] 10]
 
-	[split-at [1 2 3 4 5 6 3 7 8] -1]
-	[split-at [1 2 3 4 5 6 3 7 8] 0]
-	[split-at [1 2 3 4 5 6 3 7 8] 10]
+	[split-once/last [1 2 3 4 5 6 3 7 8] -1]
+	[split-once/last [1 2 3 4 5 6 3 7 8] 0]
+	[split-once/last [1 2 3 4 5 6 3 7 8] 10]
 
-	[split-at/last [1 2 3 4 5 6 3 7 8] -1]
-	[split-at/last [1 2 3 4 5 6 3 7 8] 0]
-	[split-at/last [1 2 3 4 5 6 3 7 8] 10]
+	[split-once "123456378" 3]
+	[split-once/tail "123456378" 3]
+	[split-once/last "123456378" 3]
+	[split-once/last/tail "123456378" 3]
 
-	[split-at "123456378" 3]
-	[split-at/tail "123456378" 3]
-	[split-at/last "123456378" 3]
-	[split-at/last/tail "123456378" 3]
+	[split-once "123456378" #"3"]
+	[split-once/tail "123456378" #"3"]
+	[split-once/last "123456378" #"3"]
+	[split-once/last/tail "123456378" #"3"]
 
-	[split-at "123456378" #"3"]
-	[split-at/tail "123456378" #"3"]
-	[split-at/last "123456378" #"3"]
-	[split-at/last/tail "123456378" #"3"]
-
-	[split-at "123456378" #"/"]
-	[split-at/tail "123456378" #"/"]
-	[split-at/last "123456378" #"/"]
-	[split-at/last/tail "123456378" #"/"]
+	[split-once "123456378" #"/"]
+	[split-once/tail "123456378" #"/"]
+	[split-once/last "123456378" #"/"]
+	[split-once/last/tail "123456378" #"/"]
 ]
+
+;-------------------------------------------------------------------------------
 
 
 ;-------------------------------------------------------------------------------
@@ -494,47 +472,144 @@ split-ctx: context [
 
 	delim-types: exclude default! make typeset! [integer! block! any-function! event!]
 
-	trace: on
+	;-------------------------------------------------------------------------------
 
-	=num-parts: none
-	split-rule: [
-		'into set =num-parts integer! opt [['parts | 'pieces | 'chunks]] (
-			
-		)
-	]
+	; This might actually be cleaner as a simple loop, but with parse we might
+	; also be able to compose the ops in so [/before/at/after] map to
+	; [to | thru] + [dlm | none] and /count maps to [N | []] when composed.
+
+	split-delimited: function [
+		series [series!]
+		delim
+		/before "Include delimiter in the value following it"
+		/at     "(default) Do not include delimiter in results"
+		/after  "Include delimiter in the value preceding it"
+		/count ct [integer!]
+		/local v
+	][
+		;dbg "delimiter; split at every instance"
+		if not find delim-types type? :delim [cause-error 'script 'invalid-arg [delim]]
 		
+		;dlm-len: either series? dlm [length? dlm] [1]   ; any-string? instead of series?
+		;if all [any-string series  tag? dlm] [dlm-len: add 2 dlm-len]			; tag length doesn't include brackets
+		rule: [
+			collect any [
+				keep copy v [to [delim | end]] ;keep (v)
+				delim ;dlm-len skip  ; is there enough speed gain to make 'skip worth it?
+				[end keep (make series 0) | none]
+			]
+		]
+		
+		parse series rule
+	]
+
+	;-------------------------------------------------------------------------------
+
+
+	trace: on
+	dbg: either trace [:print][:none]
+
+;-------------------------------------------------------------------------------
+
+
 	set 'split function [
 		"Split a series into pieces; fixed or variable size, fixed number, or at delimiters"
 		series [series!] "The series to split"
 		;!! need a more general name for this param now, spec or rule maybe.
 		dlm    ;[block! integer! char! bitset! any-string! any-function!] "Split size, delimiter(s), predicate, or rule(s)." 
-		/local s
+		/local s v
 	][
-		dbg: either trace [:print][:none]
+		;-------------------------------------------------------------------------------
+		;-- Parse rules
+		;
+		; Dialected rule handlers MUST set 'res
+		=num: =once: =mod: =ord: =pos: =dlm: none
+		split-rule: [
+			(=num: =once: =mod: =ord: =pos: =dlm: none)
+			
+			; Single delim, just in a block rather than as a direct arg
+			; Into N parts
+			'into set =num integer! opt [['parts | 'pieces | 'chunks]] (
+				print ['>> 'split-into-N-parts]
+				res: split-into-N-parts series =num
+			)
+
+			| [delimiter=	(
+				dbg "delimiter (in block); split at every instance"
+				;dlm-len: either series? dlm [length? dlm] [1]   ; any-string? instead of series?
+				;if tag? dlm [dlm-len: add 2 dlm-len]			; tag length doesn't include brackets
+				rule: [
+					collect any [
+						keep copy v [to [=dlm | end]] ;keep (v)
+						=dlm ;dlm-len skip  ; is there enough speed gain to make 'skip worth it?
+						[end keep (make series 0) | none]
+					]
+				]
+				)
+			]
+
+			| [
+				[
+					'once (=once: yes) opt delim-modifier=
+					| opt delim-modifier= opt 'every
+				]
+				(print 'xxxxx)
+				opt ordinal=
+				[
+					delimiter=
+					| position=
+				](
+					print ['=num =num '=once =once '=mod =mod '=ord =ord '=pos =pos '=dlm =dlm]
+				)
+			]
+
+		]
+		delimiter=: [
+			;'as-delim any-type! ("Treat as literal value, not position or rule")
+			'as-delim set =dlm [integer! | block!] ;("Treat as literal value, not position or rule")
+			| not [
+				integer!
+				| block! 
+				| any-function!
+				| unset!
+			  ]
+			  set =dlm any-type!
+		]
+		position=: [set =pos integer!] ; TBD enforce `positive?`
+		delim-modifier=: [
+			set '=mod ['at | 'before | 'after] ; ("before+first/after+last make no sense") 
+		]
+		ordinal=: [set '=ord ['first | 'last]] ; | Nth] ("Implies once")]
+
+		;-------------------------------------------------------------------------------
+
 		size: :dlm									;-- alias for readability in size-based rules
+		
+		;!!----------------------------------------
+		;!! Case handlers MUST set 'res or 'rule !!
+		;!!----------------------------------------
 		case [
 			; The most common case is simple splitting at every delimiter.
 			; To allow all delimiter types except what we explicitly forbid,
 			; we have to check those. 
 			find delim-types type? :dlm [
 				dbg "delimiter; split at every instance"
-				dlm-len: either series? dlm [length? dlm] [1]   ; any-string? instead of series?
-				if tag? dlm [dlm-len: add 2 dlm-len]			; tag length doesn't include brackets
-				; parse series [collect any [copy s [to [dlm | end]] keep (s) num skip [end keep (copy "") | none]]]
-				rule: [
-					collect any [
-						copy s [to [dlm | end]] keep (s)
-						dlm-len skip
-						[end keep (copy "") | none]
-					]
-				]
+				res: split-delimited series dlm
+;;				;dlm-len: either series? dlm [length? dlm] [1]   ; any-string? instead of series?
+;;				;if tag? dlm [dlm-len: add 2 dlm-len]			; tag length doesn't include brackets
+;				rule: [
+;					collect any [
+;						keep copy v [to [dlm | end]] ;keep (v)
+;						dlm ;dlm-len skip  ; is there enough speed gain to make 'skip worth it?
+;						[end keep (make series 0) | none]
+;					]
+;				]
 			]
 			integer? :dlm [
 				dbg "integer; split into chunks of its size"
 				if size < 1 [cause-error 'Script 'invalid-arg size]
 				rule: [
 					collect [
-						;any [copy series 1 size skip (keep/only series)]
 						any [keep copy series 1 size skip]
 					]
 				]
@@ -546,19 +621,15 @@ split-ctx: context [
 				dbg "function; filter into pass/fail"
 				res: filter series :dlm
 			]
-			all [block? :dlm  all-are? reduce dlm integer!][
+			; Do we want to make it easier on the user, for common cases,
+			; by reducing here?
+			all [block? :dlm  attempt [all-are? reduce dlm integer!]][
 				dbg "block of ints"
 				res: split-var-parts series :dlm
-;				res: map-each len dlm [
-;					either positive? len [
-;						copy/part series series: skip series len
-;					][
-;						series: skip series negate len
-;						()										;-- return unset so that nothing is added to output
-;					]
-;				]
 			]
-			all [block? :dlm  all-are? reduce dlm :any-function?][
+			; Do we want to make it easier on the user, for common cases,
+			; by reducing here?
+			all [block? :dlm  attempt [all-are? reduce dlm :any-function?]][
 				dbg "block of funcs"
 				res: partition series :dlm
 			]
@@ -567,10 +638,25 @@ split-ctx: context [
 				; Now we have to decide if we let them use any old parse rule, 
 				; in addition to valid dialected spec blocks.
 				dbg "dialected block"
-				either parse dlm split-rule [
-					
+;				case [
+;					parse dlm into-N-parts= []
+;					; Not a dialected split spec. Use as a parse rule directly.
+;					'else []
+;				]
+				; dialected rule handlers MUST set 'res
+				either all [parse dlm split-rule  res][
+					; A dialected rule was handled and the result was set.
+					; Nothing else to do here.
 				][
-					; Not a dialected split spec
+					; Not a dialected split spec. Use as a parse rule directly.
+					rule: [
+						collect any [
+							;[any [mk1: some [mk2: dlm break | skip] keep (copy/part mk1 mk2)]]
+							keep copy v [to [dlm | end]] ;keep (s)
+							dlm
+							[end keep (make series 0) | none]
+						]
+					]
 				]
 			]
 			'else [
@@ -585,9 +671,6 @@ split-ctx: context [
 		if not res [
 			either rule [
 				;dbg ["Rule:" mold rule]
-				;print ['split 'parts? parts mold series mold dlm newline]
-				; Note that these cases reutrn a block as their last expression, 
-				; to be used by parse.
 				res: parse series rule
 			][
 				; Rule wasn't set, so their split spec was invalid
@@ -601,117 +684,8 @@ split-ctx: context [
 		;print [tab '>>>>>> mold res]
 		return res
 		
-;-------------------------------------------------------------------------------
-;-------------------------------------------------------------------------------
-;-------------------------------------------------------------------------------
-		
-;;		if any-function? :dlm [return filter series :dlm]
-;;		if at [return split-at series :dlm opts]
-;;		; block of ints = uneven pieces
-;;		if all [block? dlm  parse dlm [some integer!]][return split-parts series :dlm]
-;;		; block of funcs = partition
-;;		if all [block? dlm  parse reduce dlm [some any-function!]][return partition series :dlm]
-;		
-;		;print ['split 'parts? parts mold series mold dlm]
-;		either all [block? dlm  parse dlm [some integer!]][
-;;			; uneven pieces
-;;			map-each len dlm [
-;;				either positive? len [
-;;					copy/part series series: skip series len
-;;				][
-;;					series: skip series negate len
-;;					()										;-- return unset so that nothing is added to output
-;;				]
-;;			]
-;		][
-;			size: dlm										;-- alias for readability
-;			res: collect [
-;				;print ['split 'parts? parts mold series mold dlm newline]
-;				; Note that these cases reutrn a block as their last expression, 
-;				; to be used by parse.
-;				parse series case [
-;					; into N parts
-;					all [integer? dlm  parts][
-;						if size < 1 [cause-error 'Script 'invalid-arg size]
-;						count: size - 1
-;						piece-size: to integer! round/down divide length? series size
-;						if zero? piece-size [piece-size: 1]
-;						[
-;							count [copy series piece-size skip (keep/only series)]
-;							copy series to end (keep/only series)
-;						]
-;					]
-;;					; into parts of size N
-;;					integer? dlm [
-;;						if size < 1 [cause-error 'Script 'invalid-arg size]
-;;						[any [copy series 1 size skip (keep/only series)]]
-;;					]
-;;					; at every delimiter
-;;					'else [									;-- = any [bitset? dlm  any-string? dlm  char? dlm]
-;;						[any [mk1: some [mk2: dlm break | skip] (keep/only copy/part mk1 mk2)]]
-;;					]
-;				]
-;			]
-;			;-- Special processing, to handle cases where they spec'd more items in
-;			;   /parts than the series contains (so we want to append empty items),
-;			;   or where the dlm was a char/string/charset and it was the last char
-;			;   (so we want to append an empty field that the above rule misses).
-;			fill-val: does [copy either any-block? series [ [] ][ "" ]]
-;			add-fill-val: does [append/only res fill-val]
-;			case [
-;				all [integer? size  parts][
-;					;-- If the result is too short, i.e., less items than 'size, add
-;					;   empty items to fill it to 'size.
-;					;   We loop here, because insert/dup doesn't copy the value inserted.
-;					if size > length? res [
-;						loop (size - length? res) [add-fill-val]
-;					]
-;				]
-;				;-- integer? size
-;				;	If they spec'd an integer size, but did not use /parts, there is
-;				;	no special filing to be done. The final element may be less than
-;				;	size, which is intentional.
-;				;--
-;				'else [ 									;-- = any [bitset? dlm  any-string? dlm  char? dlm]
-;					print "AAAhh! Non int fill code should not be needed."
-;;					;-- If the last thing in the series is a delimiter, there is an
-;;					;   implied empty field after it, which we add here.
-;;					case [
-;;						bitset? dlm [
-;;							;-- ATTEMPT is here because LAST will return NONE for an 
-;;							;   empty series, and finding none in a bitest is not allowed.
-;;							if attempt [find dlm last series][add-fill-val]
-;;						]
-;;						char? dlm [
-;;							if dlm = last series [add-fill-val]
-;;						]
-;;						string? dlm [
-;;							if all [
-;;								find series dlm
-;;								empty? find/last/tail series dlm
-;;							][add-fill-val]
-;;						]
-;;					]
-;				]
-;			]
-;
-;			res
-;		]
 	]
 
-;-------------------------------------------------------------------------------
-
-	;-- Special processing, to handle cases where they spec'd more items in
-	;   /parts than the series contains (so we want to append empty items),
-	;   or where the dlm was a char/string/charset and it was the last char
-	;   (so we want to append an empty field that the above rule misses).
-	fill-val: does [copy either any-block? series [ [] ][ "" ]]
-	add-fill-val: does [append/only res fill-val]
-
-	post-process: function [][
-		
-	]
-	
 ;-------------------------------------------------------------------------------
 
 	test: func [block expected-result /local res err] [
@@ -747,7 +721,7 @@ split-ctx: context [
 	test [split "1,2,3," charset ",."]    ["1" "2" "3" ""]
 	test [split "1.2,3." charset ",."]    ["1" "2" "3" ""]
 
-	test [split "-a-a" ["a"]]    ["-" "-"]
+	test [split "-a-a" ["a"]]    ["-" "-" ""]
 	test [split "-a-a'" ["a"]]    ["-" "-" "'"]
 
 	;-------------------------------------------------------------------------------
@@ -785,8 +759,9 @@ split-ctx: context [
 	test [split "1234567812345678" [into 5 parts]]  ["123" "456" "781" "234" "5678"]
 
 	; Dlm longer than series
-	test [split "123"   [into 6 parts]]       ["1" "2" "3" "" "" ""] ;or ["1" "2" "3"]
-	test [split [1 2 3] [into 6 parts]]     [[1] [2] [3] [] [] []] ;or [1 2 3]
+	test [split "123"   [into 6 parts]]			["1" "2" "3" "" "" ""] ;or ["1" "2" "3"]
+	test [split [1 2 3] [into 6 parts]]			[[1] [2] [3] [] [] []] ;or [[1] [2] [3]]
+	test [split quote (1 2 3) [into 6 parts]]	[(1) (2) (3) () () ()] ;or [(1) (2) (3)]
 	;test [split [1 2 3] [into 6 parts]]     [[1] [2] [3] none none none] ;or [1 2 3]
 
 

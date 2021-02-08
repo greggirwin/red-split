@@ -874,3 +874,16 @@ foreach test break-at-tests [
 ;    ]
 ;]
 
+;-------------------------------------------------------------------------------
+
+	;-- Special processing, to handle cases where they spec'd more items in
+	;   /parts than the series contains (so we want to append empty items),
+	;   or where the dlm was a char/string/charset and it was the last char
+	;   (so we want to append an empty field that the above rule misses).
+	fill-val: does [copy either any-block? series [ [] ][ "" ]]
+	add-fill-val: does [append/only res fill-val]
+
+	post-process: function [][
+		
+	]
+	
