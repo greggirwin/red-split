@@ -294,10 +294,10 @@ partition: function [   ; GROUP ?
 ][
 	; So the caller can just use get-words in a block. Otherwise 99.9%
 	; of callers will have to use `reduce` themselves.
-	tests: reduce tests
+	tests: attempt [reduce tests]
 	; No arity or type checking for given predicate funcs.
 	if not parse tests [some any-function!] [
-		cause-error 'Script 'invalid-arg tests
+		cause-error 'Script 'invalid-arg [tests]
 	]
 	; Result will be a block of blocks.
 	result: copy []
@@ -503,6 +503,36 @@ split-ctx: context [
 		parse series rule
 	]
 
+	split-delimited: function [
+		series [series!]
+		delim
+		/before "Include delimiter in the value following it"
+		/at     "(default) Do not include delimiter in results"
+		/after  "Include delimiter in the value preceding it"
+		/count ct [integer!]
+		/local v
+	][
+		; Do we allow blocks as delims?
+		;dbg "delimiter; split at every instance"
+		;if not find delim-types type? :delim [cause-error 'script 'invalid-arg [delim]]
+		if all [
+			not find delim-types type? :delim 
+			not block? :delim
+		][cause-error 'script 'invalid-arg [delim]]
+		
+		;dlm-len: either series? dlm [length? dlm] [1]   ; any-string? instead of series?
+		;if all [any-string series  tag? dlm] [dlm-len: add 2 dlm-len]			; tag length doesn't include brackets
+		rule: [
+			collect any [
+				keep copy v [to [delim | end]]
+				delim ;dlm-len skip  ; is there enough speed gain to make 'skip worth it?
+				[end keep (make series 0) | none]
+			]
+		]
+		
+		parse series rule
+	]
+
 	;-------------------------------------------------------------------------------
 
 
@@ -530,38 +560,43 @@ split-ctx: context [
 			; Single delim, just in a block rather than as a direct arg
 			; Into N parts
 			'into set =num integer! opt [['parts | 'pieces | 'chunks]] (
-				print ['>> 'split-into-N-parts]
+				dbg ['>> 'split-into-N-parts]
 				res: split-into-N-parts series =num
 			)
 
-			| [delimiter=	(
-				dbg "delimiter (in block); split at every instance"
-				;dlm-len: either series? dlm [length? dlm] [1]   ; any-string? instead of series?
-				;if tag? dlm [dlm-len: add 2 dlm-len]			; tag length doesn't include brackets
-				rule: [
-					collect any [
-						keep copy v [to [=dlm | end]] ;keep (v)
-						=dlm ;dlm-len skip  ; is there enough speed gain to make 'skip worth it?
-						[end keep (make series 0) | none]
-					]
-				]
-				)
-			]
-
-			| [
+			| (print 'xxxxx) [
 				[
 					'once (=once: yes) opt delim-modifier=
 					| opt delim-modifier= opt 'every
 				]
-				(print 'xxxxx)
+				(print 'xxxxx-2)
 				opt ordinal=
 				[
 					delimiter=
 					| position=
 				](
 					print ['=num =num '=once =once '=mod =mod '=ord =ord '=pos =pos '=dlm =dlm]
+					res: 'TBD
 				)
 			]
+
+			| (print 'yyyy) [delimiter=	(
+				dbg "delimiter (in block); split at every instance"
+				res: split-delimited series =dlm
+;				;dlm-len: either series? dlm [length? dlm] [1]   ; any-string? instead of series?
+;				;if tag? dlm [dlm-len: add 2 dlm-len]			; tag length doesn't include brackets
+;				rule: [
+;					collect any [
+;						keep copy v [to [=dlm | end]] ;keep (v)
+;						=dlm ;dlm-len skip  ; is there enough speed gain to make 'skip worth it?
+;						[end keep (make series 0) | none]
+;					]
+;				]
+				)
+
+
+			]
+
 
 		]
 		delimiter=: [
@@ -577,9 +612,9 @@ split-ctx: context [
 		]
 		position=: [set =pos integer!] ; TBD enforce `positive?`
 		delim-modifier=: [
-			set '=mod ['at | 'before | 'after] ; ("before+first/after+last make no sense") 
+			set =mod ['at | 'before | 'after] ; ("before+first/after+last make no sense") 
 		]
-		ordinal=: [set '=ord ['first | 'last]] ; | Nth] ("Implies once")]
+		ordinal=: [set =ord ['first | 'last]] ; | Nth] ("Implies once")]
 
 		;-------------------------------------------------------------------------------
 
@@ -635,9 +670,9 @@ split-ctx: context [
 			]
 			
 			block? :dlm [
+				dbg "going into block dlm"
 				; Now we have to decide if we let them use any old parse rule, 
 				; in addition to valid dialected spec blocks.
-				dbg "dialected block"
 ;				case [
 ;					parse dlm into-N-parts= []
 ;					; Not a dialected split spec. Use as a parse rule directly.
@@ -645,18 +680,21 @@ split-ctx: context [
 ;				]
 				; dialected rule handlers MUST set 'res
 				either all [parse dlm split-rule  res][
+					dbg "dialected block"
 					; A dialected rule was handled and the result was set.
 					; Nothing else to do here.
 				][
+					dbg "Using block as parse rule"
 					; Not a dialected split spec. Use as a parse rule directly.
-					rule: [
-						collect any [
-							;[any [mk1: some [mk2: dlm break | skip] keep (copy/part mk1 mk2)]]
-							keep copy v [to [dlm | end]] ;keep (s)
-							dlm
-							[end keep (make series 0) | none]
-						]
-					]
+					res: split-delimited series dlm
+;					rule: [
+;						collect any [
+;							;[any [mk1: some [mk2: dlm break | skip] keep (copy/part mk1 mk2)]]
+;							keep copy v [to [dlm | end]] ;keep (s)
+;							dlm
+;							[end keep (make series 0) | none]
+;						]
+;					]
 				]
 			]
 			'else [
@@ -700,6 +738,7 @@ split-ctx: context [
 	test [split "" 4]  []
 	;test [split "" 0]  [""]			; invalid call
 	test [split "" comma]  [""]
+	test [split " " comma]  [" "]
 	test [split "," comma]  ["" ""]
 	test [split "a," comma]  ["a" ""]
 	test [split ",a" comma]  ["" "a"]
@@ -725,12 +764,15 @@ split-ctx: context [
 	test [split "-a-a'" ["a"]]    ["-" "-" "'"]
 
 	;-------------------------------------------------------------------------------
-	; to/thru bitset! is broken in R3 now.
 	test [split "abc|de/fghi:jk" charset "|/:"]                     ["abc" "de" "fghi" "jk"]
 
-	; to/thru block! is broken in R3 now.
-	test [split "abc^M^Jde^Mfghi^Jjk" [crlf | #"^M" | newline]]     ["abc" "de" "fghi" "jk"]
-	test [split "abc     de fghi  jk" [some #" "]]                  ["abc" "de" "fghi" "jk"]
+	;!! If there are non-literal values, you have to double-block
+	;   parse rules. This isn't great.
+	test [split "abc^M^Jde^Mfghi^Jjk" ["^M^/" | #"^M" | "^/"]]     ["abc" "de" "fghi" "jk"]
+;	test [split "abc^M^Jde^Mfghi^Jjk" [crlf | #"^M" | newline]]     ["abc" "de" "fghi" "jk"]
+;	test [split "abc     de fghi  jk" [some #" "]]                  ["abc" "de" "fghi" "jk"]
+	test [split "abc^M^Jde^Mfghi^Jjk" [[crlf | #"^M" | newline]]]     ["abc" "de" "fghi" "jk"]
+	test [split "abc     de fghi  jk" [[some #" "]]]                  ["abc" "de" "fghi" "jk"]
 
 	;-------------------------------------------------------------------------------
 
@@ -738,7 +780,8 @@ split-ctx: context [
 	test [split [1 2 3 4 5 6] :odd?]	[[1 3 5] [2 4 6]]
 	test [split [1 2.3 /a word "str" #iss x: :y] :refinement?]	[[/a] [1 2.3 word "str" #iss x: :y]]
 	test [split [1 2.3 /a word "str" #iss x: :y] :number?]		[[1 2.3] [/a word "str" #iss x: :y]]
-	test [split [1 2.3 /a word "str" #iss x: :y] :any-word?]	[[/a word #iss x: :y] [1 2.3 "str"]]
+	test [split [1 2.3 /a word "str" #iss x: :y] :any-word?]	[[word x: :y] [1 2.3 /a "str" #iss]]
+	test [split [1 2.3 /a word "str" #iss x: :y] :all-word?]	[[/a word #iss x: :y] [1 2.3 "str"]]
 
 	;-------------------------------------------------------------------------------
 
@@ -746,11 +789,18 @@ split-ctx: context [
 	
 	;-------------------------------------------------------------------------------
 
-	; datatypes and typesets split at every delimiter
+	; datatypes and typesets split at every delimiter, because you can achieve
+	; the filter/partition behavior with funcs. But is this behavior useful?
+	; Not as much because it throws away the delimiting value. In order to be
+	; more useful, you need to use before/after.
 	; TBD update expected results.
-	test [split [1 2.3 /a word "str" #iss x: :y] :refinement!]	[[/a] [1 2.3 word "str" #iss x: :y]]
-	test [split [1 2.3 /a word "str" #iss x: :y] :number!]		[[1 2.3] [/a word "str" #iss x: :y]]
-	test [split [1 2.3 /a word "str" #iss x: :y] :any-word!]	[[/a word #iss x: :y] [1 2.3 "str"]]
+	test [split [1 2.3 /a word "str" #iss x: :y] refinement!]	[[1 2.3] [word "str" #iss x: :y]]
+	test [split [1 2.3 /a word "str" #iss x: :y] number!]		[[] [] [/a word "str" #iss x: :y]]
+	test [split [1 2.3 /a word "str" #iss x: :y] any-word!]	[[1 2.3 /a] ["str" #iss] [] []]
+
+;	test [split [1 2.3 /a word "str" #iss x: :y] :refinement!]	[[/a] [1 2.3 word "str" #iss x: :y]]
+;	test [split [1 2.3 /a word "str" #iss x: :y] :number!]		[[1 2.3] [/a word "str" #iss x: :y]]
+;	test [split [1 2.3 /a word "str" #iss x: :y] :any-word!]	[[/a word #iss x: :y] [1 2.3 "str"]]
 
 	;-------------------------------------------------------------------------------
 	test [split [1 2 3 4 5 6]      [into 2 parts]]    [[1 2 3] [4 5 6]]
@@ -782,6 +832,7 @@ split-ctx: context [
 	; New design for negative skip vals
 	test [split [1 2 3 4 5 6] [2 -2 2]]             [[1 2] [5 6]]
 
+	test [split "1,2,3" [before #","]]     ["1" ",2" ",3"]
 
 ;	test [split/at [1 2.3 /a word "str" #iss x: :y]  4    []]	[[1 2.3 /a word] ["str" #iss x: :y]]
 ;	;!! Splitting /at with a non-integer excludes the delimiter from the result
