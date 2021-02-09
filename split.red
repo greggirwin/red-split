@@ -513,7 +513,7 @@ split-ctx: context [
 		/local v
 	][
 		; Do we allow blocks as delims?
-		;dbg "delimiter; split at every instance"
+		dbg ["Split-delimited" mold series mold delim]
 		;if not find delim-types type? :delim [cause-error 'script 'invalid-arg [delim]]
 		if all [
 			not find delim-types type? :delim 
@@ -522,15 +522,41 @@ split-ctx: context [
 		
 		;dlm-len: either series? dlm [length? dlm] [1]   ; any-string? instead of series?
 		;if all [any-string series  tag? dlm] [dlm-len: add 2 dlm-len]			; tag length doesn't include brackets
-		rule: [
-			collect any [
-				keep copy v [to [delim | end]]
-				delim ;dlm-len skip  ; is there enough speed gain to make 'skip worth it?
-				[end keep (make series 0) | none]
-			]
+;		set [pos dlm-skip] case [
+;			;before []
+;			after  ['thru  []]
+;			'else  ['to    dlm]
+;		]
+;		rule: compose/deep [
+;			collect any [
+;				keep copy v [(pos) [delim | end]]
+;				(dlm-skip)  ; is there enough speed gain to make 'skip worth it?
+;				[end keep (quote (make series 0)) | none]
+;			]
+;		]
+		parse series case [
+			before [[
+				collect any [
+					keep copy v [opt [ahead delim skip] to [delim | end]]
+					;ahead delim
+					;[end keep (make series 0) | none]
+				]
+			]]
+			after  [[
+				collect any [
+					keep copy v [thru [delim | end]]
+					;delim
+					;[end keep (make series 0) | none]
+				]
+			]]
+			'else  [[
+				collect any [
+					keep copy v [to [delim | end]]
+					delim
+					[end keep (make series 0) | none]
+				]
+			]]
 		]
-		
-		parse series rule
 	]
 
 	;-------------------------------------------------------------------------------
@@ -577,24 +603,18 @@ split-ctx: context [
 				](
 					print ['=num =num '=once =once '=mod =mod '=ord =ord '=pos =pos '=dlm =dlm]
 					res: 'TBD
+					case [
+						=mod = 'at     [res: split-delimited        series =dlm]
+						=mod = 'before [res: split-delimited/before series =dlm]
+						=mod = 'after  [res: split-delimited/after  series =dlm]
+					]
 				)
 			]
 
-			| (print 'yyyy) [delimiter=	(
+			| [delimiter=	(
 				dbg "delimiter (in block); split at every instance"
 				res: split-delimited series =dlm
-;				;dlm-len: either series? dlm [length? dlm] [1]   ; any-string? instead of series?
-;				;if tag? dlm [dlm-len: add 2 dlm-len]			; tag length doesn't include brackets
-;				rule: [
-;					collect any [
-;						keep copy v [to [=dlm | end]] ;keep (v)
-;						=dlm ;dlm-len skip  ; is there enough speed gain to make 'skip worth it?
-;						[end keep (make series 0) | none]
-;					]
-;				]
 				)
-
-
 			]
 
 
@@ -630,15 +650,6 @@ split-ctx: context [
 			find delim-types type? :dlm [
 				dbg "delimiter; split at every instance"
 				res: split-delimited series dlm
-;;				;dlm-len: either series? dlm [length? dlm] [1]   ; any-string? instead of series?
-;;				;if tag? dlm [dlm-len: add 2 dlm-len]			; tag length doesn't include brackets
-;				rule: [
-;					collect any [
-;						keep copy v [to [dlm | end]] ;keep (v)
-;						dlm ;dlm-len skip  ; is there enough speed gain to make 'skip worth it?
-;						[end keep (make series 0) | none]
-;					]
-;				]
 			]
 			integer? :dlm [
 				dbg "integer; split into chunks of its size"
@@ -832,7 +843,17 @@ split-ctx: context [
 	; New design for negative skip vals
 	test [split [1 2 3 4 5 6] [2 -2 2]]             [[1 2] [5 6]]
 
-	test [split "1,2,3" [before #","]]     ["1" ",2" ",3"]
+	test [split "1,2,3" [at #","]]     	["1" "2" "3"]
+	test [split "1,2,3" [before #","]]  ["1" ",2" ",3"]
+	test [split "1,2,3" [after #","]]   ["1," "2," "3"]
+
+	test [split ",1,2,3," [at #","]]      ["" "1" "2" "3" ""]
+	;!! These are a bit tricky to reason about. The delimiter goes with
+	;	the next or previous value, so what constitutes an empty field
+	;	at the end, as with simple splitting? These results make the
+	;	most sense to me, but I'm only 90% confident in that choice.
+	test [split ",1,2,3," [before #","]]  [",1" ",2" ",3" ","]	; delim goes with next value
+	test [split ",1,2,3," [after #","]]   ["," "1," "2," "3,"]  ; delim goes with prev value
 
 ;	test [split/at [1 2.3 /a word "str" #iss x: :y]  4    []]	[[1 2.3 /a word] ["str" #iss x: :y]]
 ;	;!! Splitting /at with a non-integer excludes the delimiter from the result
