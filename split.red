@@ -383,64 +383,102 @@ e.g. [
 ]
 
 
-sys-tail: :tail
 split-once: function [
 	"Split the series at a position or value, returning the two halves."
 	series [series!]
-	delim  "Delimiting value, or index if an integer"
+	delim  "Delimiting value, or index (think SKIP not AT) if an integer"
 	/value "Split at delim value, not index, if it's an integer"
-	/tail  "Split at delim's tail; implies value"
+	/before "Include delimiter in the second half; implies /value"
+	;/at     "(default) Do not include delimiter in results if /value"
+	/after  "Include delimiter in the first half; implies /value"
+	;/first "(default) Split at the first occurrence of value"
 	/last  "Split at the last occurrence of value"
 ][
-	copy-to: func [end] [copy/part series end]
-	reduce either all [integer? delim  not any [value tail last]] [
-		[copy-to delim  copy at series delim + 1]
-	][
-		if string? series [delim: form delim]
-		; No way to apply or refine funcs in Red yet, so this is ugly.
+	reduce either all [integer? delim  not any [value before after]] [
+		print 'A-POS
 		pos: either last [
-			either tail [find/tail/last series delim] [find/last series delim]
+			skip tail series negate delim
 		][
-			either tail [find/tail series delim] [find series delim]
+			delim
 		]
+		; Result to reduce
+		print [tab pos mold series]
+		[
+			copy/part series pos
+			copy at series pos + 1
+		]
+	][
+		; A big question is whether to use find/only or make it a refinement. 
+		print 'B-VAL
+		if string? series [delim: form delim]
+		drop-len either any [before after][length? delim][0]
+		; No way to apply or refine funcs in Red yet, so this is a bit ugly/redundant.
+		; Eventually we'll want to use a APPLY/REFINE applicator of some kind.
+		pos: case [
+			all [before last]	[find/last series delim]
+			all [after  last]	[find/tail/last series delim]
+			before 				[find series delim]
+			after  				[find/tail series delim]
+			last   				[find/last series delim]
+			'else  				[find series delim]
+		]
+;		pos: either last [
+;			either after [find/tail/last series delim] [find/last series delim]
+;		][
+;			either after [find/tail series delim] [find series delim]
+;		]
 		; Delimiter not found
 		if none? pos [
-			pos: either last [series] [sys-tail series]
+			pos: either last [series] [tail series]
 		]
-		[copy-to pos  copy pos]
+		; Result to reduce
+		[copy/part series pos  copy pos]
 	]
 ]
 
-split-once-tests: [
-	[split-once [1 2 3 4 5 6 3 7 8] 3]
-	[split-once/tail [1 2 3 4 5 6 3 7 8] 3]
-	[split-once/value [1 2 3 4 5 6 3 7 8] 3]
-	[split-once/value/tail [1 2 3 4 5 6 3 7 8] 3]
-	[split-once/last [1 2 3 4 5 6 3 7 8] 3]
-	[split-once/last/tail [1 2 3 4 5 6 3 7 8] 3]
+do [ ; comment
+	test: func [block expected-result /local res err] [
+		if error? set/any 'err try [
+			print [mold/only :block newline tab mold res: do block]
+			if res <> expected-result [print [tab 'FAILED! tab 'expected mold expected-result]]
+		][
+			print [mold/only :block newline tab "ERROR!" mold err]
+		]
+	]
+	split-once-tests: [
+		[split-once [1 2 3 4 5 6 3 7 8] 3]				[ [1 2 3] [4 5 6 3 7 8] ]
+		[split-once/after [1 2 3 4 5 6 3 7 8] 3]		[ [1 2 3] [4 5 6 3 7 8] ]
+		[split-once/value [1 2 3 4 5 6 3 7 8] 3]		[ [1 2  ] [4 5 6 3 7 8] ]
+		[split-once/value/after [1 2 3 4 5 6 3 7 8] 3]	[ [1 2 3] [4 5 6 3 7 8] ]
+		[split-once/last [1 2 3 4 5 6 3 7 8] 3]			[ [1 2 3 4 5 6] [3 7 8] ]
+		[split-once/last/after [1 2 3 4 5 6 3 7 8] 3]	[ [1 2 3 4 5 6 7 3] [7 8] ]
 
-	[split-once [1 2 3 4 5 6 3 7 8] -1]
-	[split-once [1 2 3 4 5 6 3 7 8] 0]
-	[split-once [1 2 3 4 5 6 3 7 8] 10]
+		[split-once [1 2 3 4 5 6 3 7 8] -1]				[ [] [1 2 3 4 5 6 3 7 8] ]
+		[split-once [1 2 3 4 5 6 3 7 8] 0]				[ [] [1 2 3 4 5 6 3 7 8] ]
+		[split-once [1 2 3 4 5 6 3 7 8] 10]				[ [1 2 3 4 5 6 3 7 8] [] ]
 
-	[split-once/last [1 2 3 4 5 6 3 7 8] -1]
-	[split-once/last [1 2 3 4 5 6 3 7 8] 0]
-	[split-once/last [1 2 3 4 5 6 3 7 8] 10]
+		[split-once/last [1 2 3 4 5 6 3 7 8] -1]		[ [1 2 3 4 5 6 3 7] [8] ]
+		[split-once/last [1 2 3 4 5 6 3 7 8] 0]			[ [1 2 3 4 5 6 3 7 8] [] ]
+		[split-once/last [1 2 3 4 5 6 3 7 8] 10]		[ [] [1 2 3 4 5 6 3 7 8] ]
 
-	[split-once "123456378" 3]
-	[split-once/tail "123456378" 3]
-	[split-once/last "123456378" 3]
-	[split-once/last/tail "123456378" 3]
+		[split-once "123456378" 3]						[ [] [] ]
+		[split-once/after "123456378" 3]				[ [] [] ]
+		[split-once/last "123456378" 3]					[ [] [] ]
+		[split-once/last/after "123456378" 3]			[ [] [] ]
 
-	[split-once "123456378" #"3"]
-	[split-once/tail "123456378" #"3"]
-	[split-once/last "123456378" #"3"]
-	[split-once/last/tail "123456378" #"3"]
+		[split-once "123456378" #"3"]					[ [] [] ]
+		[split-once/after "123456378" #"3"]				[ [] [] ]
+		[split-once/last "123456378" #"3"]				[ [] [] ]
+		[split-once/last/after "123456378" #"3"]		[ [] [] ]
 
-	[split-once "123456378" #"/"]
-	[split-once/tail "123456378" #"/"]
-	[split-once/last "123456378" #"/"]
-	[split-once/last/tail "123456378" #"/"]
+		[split-once "123456378" #"/"]					[[] [] ]
+		[split-once/after "123456378" #"/"]				[[] [] ]
+		[split-once/last "123456378" #"/"]				[[] [] ]
+		[split-once/last/after "123456378" #"/"]		[[] [] ]
+	]
+	
+;	foreach [blk res] split-once-tests [test blk res]
+;	halt
 ]
 
 ;-------------------------------------------------------------------------------
@@ -509,10 +547,12 @@ split-ctx: context [
 		/before "Include delimiter in the value following it"
 		/at     "(default) Do not include delimiter in results"
 		/after  "Include delimiter in the value preceding it"
-		/count ct [integer!]
+		; TBD: is count worth supporting?
+		;/count ct [integer!] "Maximum number of splits; remainder of series is the last"
 		/local v
 	][
-		; Do we allow blocks as delims?
+		; Do we allow blocks as delims? If not, we have to do something
+		; else for standard parse rules that pass thru to this.
 		dbg ["Split-delimited" mold series mold delim]
 		;if not find delim-types type? :delim [cause-error 'script 'invalid-arg [delim]]
 		if all [
@@ -520,43 +560,83 @@ split-ctx: context [
 			not block? :delim
 		][cause-error 'script 'invalid-arg [delim]]
 		
-		;dlm-len: either series? dlm [length? dlm] [1]   ; any-string? instead of series?
-		;if all [any-string series  tag? dlm] [dlm-len: add 2 dlm-len]			; tag length doesn't include brackets
-;		set [pos dlm-skip] case [
-;			;before []
-;			after  ['thru  []]
-;			'else  ['to    dlm]
-;		]
-;		rule: compose/deep [
-;			collect any [
-;				keep copy v [(pos) [delim | end]]
-;				(dlm-skip)  ; is there enough speed gain to make 'skip worth it?
-;				[end keep (quote (make series 0)) | none]
-;			]
-;		]
-		parse series case [
+		rule-core: case [
 			before [[
-				collect any [
-					keep copy v [opt [ahead delim skip] to [delim | end]]
-					;ahead delim
-					;[end keep (make series 0) | none]
-				]
+				keep copy v [opt [ahead delim skip] to [delim | end]]
 			]]
 			after  [[
-				collect any [
-					keep copy v [thru [delim | end]]
-					;delim
-					;[end keep (make series 0) | none]
-				]
+				keep copy v [thru [delim | end]]
 			]]
 			'else  [[
-				collect any [
-					keep copy v [to [delim | end]]
-					delim
-					[end keep (make series 0) | none]
-				]
+				keep copy v [to [delim | end]]
+				delim
+				[end keep (make series 0) | none]
 			]]
 		]
+		parse series compose/only [collect any (rule-core)]
+
+	]
+
+	; refinements aren't set in a funcs context this way it seems.
+;	set-from-opts: func [opts [block!]][
+;		foreach val opts [if word? :val [set val true]]
+;	]
+	has?: func [series value][to logic! find/only series value]
+	
+	split-delimited: function [
+		series [series!]
+		delim
+		/before "Include delimiter in the value following it"
+		/at     "(default) Do not include delimiter in results"
+		/after  "Include delimiter in the value preceding it"
+		; TBD: is count worth supporting?
+		/count ct [integer!] "Maximum number of splits; remainder of series is the last"
+		/with opts [block!]  "Block of options to use in place of refinements (unknown words will leak)"
+		/local v
+	][
+		; Do we allow blocks as delims? If not, we have to do something
+		; else for standard parse rules that pass thru to this.
+		dbg ["Split-delimited" mold series mold delim]
+		;if not find delim-types type? :delim [cause-error 'script 'invalid-arg [delim]]
+		if all [
+			not find delim-types type? :delim 
+			not block? :delim
+		][cause-error 'script 'invalid-arg [delim]]
+		
+		; Set refinement/var vals if a matching named option exists
+		;if opts [set-from-opts opts]
+		;if opts [foreach val opts [if word? :val [set val true]]]
+		before: has? opts 'before
+		at:     has? opts 'at
+		after:  has? opts 'after
+		if count:  has? opts 'count [ct: opts/count]
+		; Set refinement args from options
+		;if count [ct: opts/count]
+		
+		print [@before: before @at: at @after: after @count: ct @with: mold opts]
+		
+		rule-core: case [
+			before [[
+				keep copy v [opt [ahead delim skip] to [delim | end]]
+			]]
+			after  [[
+				keep copy v [thru [delim | end]]
+			]]
+			'else  [[
+				keep copy v [to [delim | end]]
+				delim
+				[end keep (make series 0) | none]
+			]]
+		]
+		either count [
+			; Copy up to (count) parts
+			parts: parse series compose/only [collect (ct) (rule-core) mark:]
+			; Then tack on the remaining data as the last part
+			append/only parts copy mark
+		][
+			parse series compose/only [collect any (rule-core)]
+		]
+
 	]
 
 	;-------------------------------------------------------------------------------
@@ -567,6 +647,12 @@ split-ctx: context [
 
 ;-------------------------------------------------------------------------------
 
+	block-of-ints?: func [value][
+		all [block? :value  attempt [all-are? reduce value integer!]]
+	]
+	block-of-funcs?: func [value][
+		all [block? :value  attempt [all-are? reduce value :any-function?]]
+	]
 
 	set 'split function [
 		"Split a series into pieces; fixed or variable size, fixed number, or at delimiters"
@@ -579,9 +665,9 @@ split-ctx: context [
 		;-- Parse rules
 		;
 		; Dialected rule handlers MUST set 'res
-		=num: =once: =mod: =ord: =pos: =dlm: none
+		=num: =once: =mod: =ord: =pos: =dlm: =ct: none
 		split-rule: [
-			(=num: =once: =mod: =ord: =pos: =dlm: none)
+			(=num: =once: =mod: =ord: =pos: =dlm: =ct: none)
 			
 			; Single delim, just in a block rather than as a direct arg
 			; Into N parts
@@ -595,23 +681,37 @@ split-ctx: context [
 					'once (=once: yes) opt delim-modifier=
 					| opt delim-modifier= opt 'every
 				]
-				(print 'xxxxx-2)
-				opt ordinal=
+				opt ordinal=	; implies 'once
 				[
 					delimiter=
 					| position=
-				](
-					print ['=num =num '=once =once '=mod =mod '=ord =ord '=pos =pos '=dlm =dlm]
+				]
+				opt count=
+				(
+					print ['=num =num '=once =once '=mod =mod '=ord =ord '=pos =pos '=dlm mold =dlm '=ct =ct]
 					res: 'TBD
-					case [
-						=mod = 'at     [res: split-delimited        series =dlm]
-						=mod = 'before [res: split-delimited/before series =dlm]
-						=mod = 'after  [res: split-delimited/after  series =dlm]
-					]
+					;-----
+					opts: reduce [=mod =ord]
+					if =once [repend opts ['count 1]]
+					if =ct  [repend opts ['count =ct]]
+					res: split-delimited/with series =dlm opts
+					;-----
+;					case [
+;						=once [
+;							case [
+;								=mod = 'at     [res: split-delimited        series =dlm]
+;								=mod = 'before [res: split-delimited/before series =dlm]
+;								=mod = 'after  [res: split-delimited/after  series =dlm]
+;							]
+;						]
+;						=mod = 'at     [res: split-delimited        series =dlm]
+;						=mod = 'before [res: split-delimited/before series =dlm]
+;						=mod = 'after  [res: split-delimited/after  series =dlm]
+;					]
 				)
 			]
 
-			| [delimiter=	(
+			| [delimiter= (
 				dbg "delimiter (in block); split at every instance"
 				res: split-delimited series =dlm
 				)
@@ -634,8 +734,9 @@ split-ctx: context [
 		delim-modifier=: [
 			set =mod ['at | 'before | 'after] ; ("before+first/after+last make no sense") 
 		]
-		ordinal=: [set =ord ['first | 'last]] ; | Nth] ("Implies once")]
-
+		ordinal=: [set =ord ['first | 'last]] ; | Nth] ("Implies once")], 'times = count
+		count=: [set =ct integer! 'times]
+		
 		;-------------------------------------------------------------------------------
 
 		size: :dlm									;-- alias for readability in size-based rules
@@ -654,11 +755,7 @@ split-ctx: context [
 			integer? :dlm [
 				dbg "integer; split into chunks of its size"
 				if size < 1 [cause-error 'Script 'invalid-arg size]
-				rule: [
-					collect [
-						any [keep copy series 1 size skip]
-					]
-				]
+				rule: [collect [any [keep copy series 1 size skip]]]
 			]
 			; alt way to check
 			;all [not integer? :dlm  not block? :dlm  not any-function? :dlm][
@@ -669,13 +766,14 @@ split-ctx: context [
 			]
 			; Do we want to make it easier on the user, for common cases,
 			; by reducing here?
-			all [block? :dlm  attempt [all-are? reduce dlm integer!]][
+			;
+			block-of-ints? :dlm [
 				dbg "block of ints"
 				res: split-var-parts series :dlm
 			]
 			; Do we want to make it easier on the user, for common cases,
 			; by reducing here?
-			all [block? :dlm  attempt [all-are? reduce dlm :any-function?]][
+			block-of-funcs? :dlm [
 				dbg "block of funcs"
 				res: partition series :dlm
 			]
@@ -690,22 +788,17 @@ split-ctx: context [
 ;					'else []
 ;				]
 				; dialected rule handlers MUST set 'res
+				; What if we COMPOSE dlm here, so the user just has to use parens
+				; for things like charsets? Otherwise the calls get a bit uglier
+				; on the user side. 
 				either all [parse dlm split-rule  res][
-					dbg "dialected block"
+					dbg "dialected block DONE"
 					; A dialected rule was handled and the result was set.
 					; Nothing else to do here.
 				][
 					dbg "Using block as parse rule"
 					; Not a dialected split spec. Use as a parse rule directly.
 					res: split-delimited series dlm
-;					rule: [
-;						collect any [
-;							;[any [mk1: some [mk2: dlm break | skip] keep (copy/part mk1 mk2)]]
-;							keep copy v [to [dlm | end]] ;keep (s)
-;							dlm
-;							[end keep (make series 0) | none]
-;						]
-;					]
 				]
 			]
 			'else [
@@ -753,6 +846,8 @@ split-ctx: context [
 	test [split "," comma]  ["" ""]
 	test [split "a," comma]  ["a" ""]
 	test [split ",a" comma]  ["" "a"]
+	test [split ",,," comma]  ["" "" "" ""]
+	test [split "aaa" #"a"]  ["" "" "" ""]
 
 
 	test [split "1234567812345678" 4]  ["1234" "5678" "1234" "5678"]
@@ -771,6 +866,7 @@ split-ctx: context [
 	test [split "1,2,3," charset ",."]    ["1" "2" "3" ""]
 	test [split "1.2,3." charset ",."]    ["1" "2" "3" ""]
 
+	;!! Seen as dialected delimiter in block if we don't require `once|every`
 	test [split "-a-a" ["a"]]    ["-" "-" ""]
 	test [split "-a-a'" ["a"]]    ["-" "-" "'"]
 
@@ -855,6 +951,25 @@ split-ctx: context [
 	test [split ",1,2,3," [before #","]]  [",1" ",2" ",3" ","]	; delim goes with next value
 	test [split ",1,2,3," [after #","]]   ["," "1," "2," "3,"]  ; delim goes with prev value
 
+	test [split "1 2 3" [at #","]]     	["1 2 3"]
+	test [split "1 2 3" [before #","]]  ["1 2 3"]
+	test [split "1 2 3" [after #","]]   ["1 2 3"]
+
+	test [split "aaa" [before #"a"]]  ["a" "a" "a"]
+
+	test [split "PascalCaseName" charset [#"A" - #"Z"]] ["" "ascal" "ase" "ame"]
+	test [split "PascalCaseName" reduce ['before charset [#"A" - #"Z"]]] ["Pascal" "Case" "Name"]
+
+	test [split "PascalCaseNameAndMoreToo" reduce [charset [#"A" - #"Z"] 3 'times]] ["" "ascal" "ase" "ameAndMoreToo"]
+	test [split "PascalCaseNameAndMoreToo" reduce ['before charset [#"A" - #"Z"] 3 'times]] ["Pascal" "Case" "Name" "AndMoreToo"]
+	test [split "PascalCaseNameAndMoreToo" reduce ['after charset [#"A" - #"Z"] 3 'times]] ["P" "ascalC" "aseN" "ameAndMoreToo"]
+	test [split "Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['after newline 3 'times]] ["Pascal^/" "Case^/" "Name^/" {And^/More^/Too^/}]
+	test [split "^/Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['after newline 3 'times]] ["^/" "Pascal^/" "Case^/" "Name^/" {And^/More^/Too^/}]
+
+	test [split "camelCaseNameAndMoreToo" reduce ['once charset [#"A" - #"Z"]]] ["camel" "aseNameAndMoreToo"]
+	test [split "camelCaseNameAndMoreToo" reduce ['once 'before charset [#"A" - #"Z"]]] ["camel" "CaseNameAndMoreToo"]
+	test [split "camelCaseNameAndMoreToo" reduce ['once 'after charset [#"A" - #"Z"]]] ["camelC" "aseNameAndMoreToo"]
+	
 ;	test [split/at [1 2.3 /a word "str" #iss x: :y]  4    []]	[[1 2.3 /a word] ["str" #iss x: :y]]
 ;	;!! Splitting /at with a non-integer excludes the delimiter from the result
 ;	test [split/at [1 2.3 /a word "str" #iss x: :y] "str" []]	[[1 2.3 /a word] [#iss x: :y]]
