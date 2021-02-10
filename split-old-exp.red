@@ -887,3 +887,103 @@ foreach test break-at-tests [
 		
 	]
 	
+;-------------------------------------------------------------------------------
+
+split-once: function [
+	"Split the series at a position or value, returning the two halves."
+	series [series!]
+	delim  "Delimiting value, or index (think SKIP not AT) if an integer"
+	/value "Split at delim value, not index, if it's an integer"
+	/before "Include delimiter in the second half; implies /value"
+	;/at     "(default) Do not include delimiter in results if /value"
+	/after  "Include delimiter in the first half; implies /value"
+	;/first "(default) Split at the first occurrence of value"
+	/last  "Split at the last occurrence of value"
+	;/Nth n "Nth occurrence of a value delimiter"
+][
+	reduce either all [integer? delim  not any [value before after]] [
+		print 'A-POS
+		pos: either last [
+			skip tail series negate delim
+		][
+			delim
+		]
+		; Result to reduce
+		print [tab pos mold series]
+		[
+			copy/part series pos
+			copy at series pos + 1
+		]
+	][
+		; A big question is whether to use find/only or make it a refinement. 
+		print 'B-VAL
+		if string? series [delim: form delim]
+		drop-len either any [before after][length? delim][0]
+		; No way to apply or refine funcs in Red yet, so this is a bit ugly/redundant.
+		; Eventually we'll want to use a APPLY/REFINE applicator of some kind.
+		pos: case [
+			all [before last]	[find/last series delim]
+			all [after  last]	[find/tail/last series delim]
+			before 				[find series delim]
+			after  				[find/tail series delim]
+			last   				[find/last series delim]
+			'else  				[find series delim]
+		]
+;		pos: either last [
+;			either after [find/tail/last series delim] [find/last series delim]
+;		][
+;			either after [find/tail series delim] [find series delim]
+;		]
+		; Delimiter not found
+		if none? pos [
+			pos: either last [series] [tail series]
+		]
+		; Result to reduce
+		[copy/part series pos  copy pos]
+	]
+]
+
+do [ ; comment
+	test: func [block expected-result /local res err] [
+		if error? set/any 'err try [
+			print [mold/only :block newline tab mold res: do block]
+			if res <> expected-result [print [tab 'FAILED! tab 'expected mold expected-result]]
+		][
+			print [mold/only :block newline tab "ERROR!" mold err]
+		]
+	]
+	split-once-tests: [
+		[split-once [1 2 3 4 5 6 3 7 8] 3]				[ [1 2 3] [4 5 6 3 7 8] ]
+		[split-once/after [1 2 3 4 5 6 3 7 8] 3]		[ [1 2 3] [4 5 6 3 7 8] ]
+		[split-once/value [1 2 3 4 5 6 3 7 8] 3]		[ [1 2  ] [4 5 6 3 7 8] ]
+		[split-once/value/after [1 2 3 4 5 6 3 7 8] 3]	[ [1 2 3] [4 5 6 3 7 8] ]
+		[split-once/last [1 2 3 4 5 6 3 7 8] 3]			[ [1 2 3 4 5 6] [3 7 8] ]
+		[split-once/last/after [1 2 3 4 5 6 3 7 8] 3]	[ [1 2 3 4 5 6 7 3] [7 8] ]
+
+		[split-once [1 2 3 4 5 6 3 7 8] -1]				[ [] [1 2 3 4 5 6 3 7 8] ]
+		[split-once [1 2 3 4 5 6 3 7 8] 0]				[ [] [1 2 3 4 5 6 3 7 8] ]
+		[split-once [1 2 3 4 5 6 3 7 8] 10]				[ [1 2 3 4 5 6 3 7 8] [] ]
+
+		[split-once/last [1 2 3 4 5 6 3 7 8] -1]		[ [1 2 3 4 5 6 3 7] [8] ]
+		[split-once/last [1 2 3 4 5 6 3 7 8] 0]			[ [1 2 3 4 5 6 3 7 8] [] ]
+		[split-once/last [1 2 3 4 5 6 3 7 8] 10]		[ [] [1 2 3 4 5 6 3 7 8] ]
+
+		[split-once "123456378" 3]						[ [] [] ]
+		[split-once/after "123456378" 3]				[ [] [] ]
+		[split-once/last "123456378" 3]					[ [] [] ]
+		[split-once/last/after "123456378" 3]			[ [] [] ]
+
+		[split-once "123456378" #"3"]					[ [] [] ]
+		[split-once/after "123456378" #"3"]				[ [] [] ]
+		[split-once/last "123456378" #"3"]				[ [] [] ]
+		[split-once/last/after "123456378" #"3"]		[ [] [] ]
+
+		[split-once "123456378" #"/"]					[[] [] ]
+		[split-once/after "123456378" #"/"]				[[] [] ]
+		[split-once/last "123456378" #"/"]				[[] [] ]
+		[split-once/last/after "123456378" #"/"]		[[] [] ]
+	]
+	
+;	foreach [blk res] split-once-tests [test blk res]
+;	halt
+]

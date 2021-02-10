@@ -382,6 +382,16 @@ e.g. [
 	split-parts blk [1 -2 3 10]
 ]
 
+split-at-index: function [
+	"Split the series at the given index (think SKIP not AT); returns the two parts."
+	series [series!]
+	index  [integer!]
+	/last  "Split at index back from tail"
+][
+	if last [index: skip tail series negate index]
+	; Return two halves
+	reduce [copy/part series index   copy at series index + 1]
+]
 
 split-once: function [
 	"Split the series at a position or value, returning the two halves."
@@ -393,6 +403,7 @@ split-once: function [
 	/after  "Include delimiter in the first half; implies /value"
 	;/first "(default) Split at the first occurrence of value"
 	/last  "Split at the last occurrence of value"
+	;/Nth n "Nth occurrence of a value delimiter"
 ][
 	reduce either all [integer? delim  not any [value before after]] [
 		print 'A-POS
@@ -589,9 +600,11 @@ split-ctx: context [
 		/before "Include delimiter in the value following it"
 		/at     "(default) Do not include delimiter in results"
 		/after  "Include delimiter in the value preceding it"
+		/first  "(default) Split at the first occurrence of value"
+		/last   "Split at the last occurrence of value"
 		; TBD: is count worth supporting?
-		/count ct [integer!] "Maximum number of splits; remainder of series is the last"
-		/with opts [block!]  "Block of options to use in place of refinements (unknown words will leak)"
+		/count ct [integer!] "Maximum number of splits to peform; remainder of series is the last"
+		/with opts [block!]  "Block of options to use in place of refinements"
 		/local v
 	][
 		; Do we allow blocks as delims? If not, we have to do something
@@ -629,7 +642,7 @@ split-ctx: context [
 			]]
 		]
 		either count [
-			; Copy up to (count) parts
+			; Copy up to <count> parts
 			parts: parse series compose/only [collect (ct) (rule-core) mark:]
 			; Then tack on the remaining data as the last part
 			append/only parts copy mark
@@ -655,7 +668,9 @@ split-ctx: context [
 	]
 
 	set 'split function [
-		"Split a series into pieces; fixed or variable size, fixed number, or at delimiters"
+		;"Split a series into parts; fixed or variable size, fixed number, or at delimiters"
+		;"Split a series into parts, by delimiter, size, number, or advanced rules"
+		"Split a series into parts, by delimiter, size, number, function, type, or advanced rules"
 		series [series!] "The series to split"
 		;!! need a more general name for this param now, spec or rule maybe.
 		dlm    ;[block! integer! char! bitset! any-string! any-function!] "Split size, delimiter(s), predicate, or rule(s)." 
@@ -676,7 +691,7 @@ split-ctx: context [
 				res: split-into-N-parts series =num
 			)
 
-			| (print 'xxxxx) [
+			| [
 				[
 					'once (=once: yes) opt delim-modifier=
 					| opt delim-modifier= opt 'every
@@ -788,9 +803,9 @@ split-ctx: context [
 ;					'else []
 ;				]
 				; dialected rule handlers MUST set 'res
-				; What if we COMPOSE dlm here, so the user just has to use parens
-				; for things like charsets? Otherwise the calls get a bit uglier
-				; on the user side. 
+				;?? What if we COMPOSE dlm here, so the user just has to use parens
+				;   for things like charsets? Otherwise the calls get a bit uglier
+				;   on the user side. 
 				either all [parse dlm split-rule  res][
 					dbg "dialected block DONE"
 					; A dialected rule was handled and the result was set.
@@ -837,6 +852,7 @@ split-ctx: context [
 		][
 			print [mold/only :block newline tab "ERROR!" mold err]
 		]
+		print ""
 	]
 
 	test [split "" 4]  []
@@ -969,6 +985,15 @@ split-ctx: context [
 	test [split "camelCaseNameAndMoreToo" reduce ['once charset [#"A" - #"Z"]]] ["camel" "aseNameAndMoreToo"]
 	test [split "camelCaseNameAndMoreToo" reduce ['once 'before charset [#"A" - #"Z"]]] ["camel" "CaseNameAndMoreToo"]
 	test [split "camelCaseNameAndMoreToo" reduce ['once 'after charset [#"A" - #"Z"]]] ["camelC" "aseNameAndMoreToo"]
+
+	test [split "Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['first newline]] ["Pascal^/" "Case^/" "Name^/" {And^/More^/Too^/}]
+	test [split "Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['at 'first newline]] ["Pascal^/" "Case^/" "Name^/" {And^/More^/Too^/}]
+	test [split "Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['after 'first newline]] ["Pascal^/" "Case^/" "Name^/" {And^/More^/Too^/}]
+	test [split "Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['before 'first newline]] ["Pascal^/" "Case^/" "Name^/" {And^/More^/Too^/}]
+	test [split "Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['last newline]] ["Pascal^/" "Case^/" "Name^/" {And^/More^/Too^/}]
+	test [split "Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['at 'last newline]] ["Pascal^/" "Case^/" "Name^/" {And^/More^/Too^/}]
+	test [split "Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['after 'last newline]] ["Pascal^/" "Case^/" "Name^/" {And^/More^/Too^/}]
+	test [split "Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['before 'last newline]] ["Pascal^/" "Case^/" "Name^/" {And^/More^/Too^/}]
 	
 ;	test [split/at [1 2.3 /a word "str" #iss x: :y]  4    []]	[[1 2.3 /a word] ["str" #iss x: :y]]
 ;	;!! Splitting /at with a non-integer excludes the delimiter from the result
