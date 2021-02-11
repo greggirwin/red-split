@@ -332,6 +332,14 @@ partition: function [   ; GROUP ?
 
 ;-------------------------------------------------------------------------------
 
+; refinements aren't set in a funcs context this way it seems.
+;	set-from-opts: func [opts [block!]][
+;		foreach val opts [if word? :val [set val true]]
+;	]
+has?: func [series value][to logic! find/only series value]
+	
+;-------------------------------------------------------------------------------
+
 split-into-N-parts: function [
 	"If the series can't be evenly split, the last value will be longer"
 	series [series!]
@@ -382,14 +390,19 @@ e.g. [
 	split-parts blk [1 -2 3 10]
 ]
 
+; The naming and behavior on this are tricky. In Red, index 1 is *before* the
+; first value. But `pick series 1` *is* the first value ("Returns the series 
+; value at a given index"). For a human, specifying the *size* of the first
+; part makes sense, with 0 meaning an empty part. Including "relative" or
+; split-at-skip for naming isn't great either, because `/skip`'s meaning in
+; other funcs is then conflated over splitting into many parts.
 split-at-index: function [
 	"Split the series at the given index (think SKIP not AT); returns the two parts."
 	series [series!]
 	index  [integer!]
 	/last  "Split at index back from tail"
 ][
-	if last [index: skip tail series negate index]
-	; Return two halves
+	if last [index: subtract length? series index]
 	reduce [copy/part series index   copy at series index + 1]
 ]
 
@@ -404,46 +417,76 @@ split-once: function [
 	;/first "(default) Split at the first occurrence of value"
 	/last  "Split at the last occurrence of value"
 	;/Nth n "Nth occurrence of a value delimiter"
+	/with opts [block!]  "Block of options to use in place of refinements"
+	/local p-1 p-2
 ][
-	reduce either all [integer? delim  not any [value before after]] [
-		print 'A-POS
-		pos: either last [
-			skip tail series negate delim
+	; Set refinement/var vals if a matching named option exists
+	;if opts [set-from-opts opts]
+	;if opts [foreach val opts [if word? :val [set val true]]]
+	before: has? opts 'before
+	;at:     has? opts 'at
+	after:  has? opts 'after
+	;first:  has? opts 'first
+	last:   has? opts 'last
+
+	either all [integer? delim  not any [value before after]] [
+		print 'split-once-at-index
+		either last [
+			split-at-index/last series delim
 		][
-			delim
-		]
-		; Result to reduce
-		print [tab pos mold series]
-		[
-			copy/part series pos
-			copy at series pos + 1
+			split-at-index series delim
 		]
 	][
 		; A big question is whether to use find/only or make it a refinement. 
-		print 'B-VAL
-		if string? series [delim: form delim]
-		drop-len either any [before after][length? delim][0]
+		print 'splint-once-at-value
+		if all [string? series  not bitset? delim][delim: form delim]
+		; charsets have to be treated as chars, but return `length?` based on bits used.
+		drop-len: either any [before after][0][
+			either bitset? delim [1][length? delim]
+		]
+;			drop-len: length? delim
 		; No way to apply or refine funcs in Red yet, so this is a bit ugly/redundant.
 		; Eventually we'll want to use a APPLY/REFINE applicator of some kind.
-		pos: case [
-			all [before last]	[find/last series delim]
-			all [after  last]	[find/tail/last series delim]
-			before 				[find series delim]
-			after  				[find/tail series delim]
-			last   				[find/last series delim]
-			'else  				[find series delim]
+		set [p-1 p-2] reduce pos: case [
+								; P-1										P-2
+			all [before last]	[probe 'BL [p: find/last series delim		p]]
+			all [after  last]	[probe 'AL [p: find/tail/last series delim	p]]
+			before 				[probe 'B_ [p: find series delim			p]]
+			after  				[probe 'A_ [p: find/tail series delim		p]]
+			last   				[probe '_L [p: find/last series delim		if p [skip p drop-len]]]
+			'else  				[probe '__ [p: find series delim			if p [skip p drop-len]]]
 		]
+		; From the above case block, we can see that the exceptional cases are
+		; when no refinement, or only /last are used. i.e. simple splitting.
+		;print ['drop drop-len 'p-1 mold p-1 'p-2 mold p-2]
+		if none? p-1 [
+			p-1: either last [series] [tail series]
+			p-2: either last [tail series] [series]
+		]
+		reduce [copy/part series p-1   copy p-2]
+
 ;		pos: either last [
 ;			either after [find/tail/last series delim] [find/last series delim]
 ;		][
 ;			either after [find/tail series delim] [find series delim]
 ;		]
 		; Delimiter not found
-		if none? pos [
-			pos: either last [series] [tail series]
-		]
-		; Result to reduce
-		[copy/part series pos  copy pos]
+;		if none? pos [
+;			pos: either last [series] [tail series]
+;		]
+;		part-1: copy/part series pos
+;		part-2: copy pos
+;		
+;		if any [before after] [
+;			;drop-len: either any [before after][length? delim][0]
+;			drop-len: length? delim
+;			case [
+;				before []
+;				after  []
+;				'else  [] ; delim is at the tail of part 1
+;			]
+;		]
+;		reduce [part-1 part-2]
 	]
 ]
 
@@ -588,12 +631,6 @@ split-ctx: context [
 
 	]
 
-	; refinements aren't set in a funcs context this way it seems.
-;	set-from-opts: func [opts [block!]][
-;		foreach val opts [if word? :val [set val true]]
-;	]
-	has?: func [series value][to logic! find/only series value]
-	
 	split-delimited: function [
 		series [series!]
 		delim
@@ -619,15 +656,23 @@ split-ctx: context [
 		; Set refinement/var vals if a matching named option exists
 		;if opts [set-from-opts opts]
 		;if opts [foreach val opts [if word? :val [set val true]]]
+		;print mold opts
 		before: has? opts 'before
 		at:     has? opts 'at
 		after:  has? opts 'after
+		first:  has? opts 'first
+		last:  has? opts 'last
 		if count:  has? opts 'count [ct: opts/count]
+		if any [first last][count: true ct: 1]
 		; Set refinement args from options
 		;if count [ct: opts/count]
 		
-		print [@before: before @at: at @after: after @count: ct @with: mold opts]
-		
+		dbg ['delim= mold delim 'before= before 'at= at 'after= after 'first= first 'last= last 'count= ct 'with= mold opts]
+
+		if ct = 1 [
+			return split-once/with series delim opts
+		]
+				
 		rule-core: case [
 			before [[
 				keep copy v [opt [ahead delim skip] to [delim | end]]
@@ -642,6 +687,7 @@ split-ctx: context [
 			]]
 		]
 		either count [
+			dbg ['split-delimited-with-count ct]
 			; Copy up to <count> parts
 			parts: parse series compose/only [collect (ct) (rule-core) mark:]
 			; Then tack on the remaining data as the last part
@@ -703,13 +749,26 @@ split-ctx: context [
 				]
 				opt count=
 				(
-					print ['=num =num '=once =once '=mod =mod '=ord =ord '=pos =pos '=dlm mold =dlm '=ct =ct]
+					dbg ['=num =num '=once =once '=mod =mod '=ord =ord '=pos =pos '=dlm mold =dlm '=ct =ct]
 					res: 'TBD
 					;-----
 					opts: reduce [=mod =ord]
 					if =once [repend opts ['count 1]]
 					if =ct  [repend opts ['count =ct]]
-					res: split-delimited/with series =dlm opts
+					; Not sure if I want to use ANY here, but it's a thought. It makes
+					; it go through split-delimited when it really shouldn't for cases
+					; where =pos is set. That should go directly to split-at-index,
+					; which split-delimited now has logic handling for, to dispatch.
+					; There it checks if the split count is one, calls split-once, and
+					; split-once checks the various options in play to dispatch to
+					; split-at-index when appropriate. split-once is pretty ugly, as is
+					; the refinement/opts propagation, but that logic would otherwise
+					; pollute split-delimited, which has a nice, clear, small set of
+					; parse rules right now. And while it seems like it shouldn't be
+					; too bad to add it there, the fly in the ointment is /last, which
+					; will make the rules for that quite different. Maybe still a net
+					; win, but not beautiful.
+					res: split-delimited/with series any [=pos =dlm] opts
 					;-----
 ;					case [
 ;						=once [
@@ -980,21 +1039,30 @@ split-ctx: context [
 	test [split "PascalCaseNameAndMoreToo" reduce ['before charset [#"A" - #"Z"] 3 'times]] ["Pascal" "Case" "Name" "AndMoreToo"]
 	test [split "PascalCaseNameAndMoreToo" reduce ['after charset [#"A" - #"Z"] 3 'times]] ["P" "ascalC" "aseN" "ameAndMoreToo"]
 	test [split "Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['after newline 3 'times]] ["Pascal^/" "Case^/" "Name^/" {And^/More^/Too^/}]
-	test [split "^/Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['after newline 3 'times]] ["^/" "Pascal^/" "Case^/" "Name^/" {And^/More^/Too^/}]
+	test [split "^/Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['after newline 3 'times]] ["^/" "Pascal^/" "Case^/" {Name^/And^/More^/Too^/}]
 
 	test [split "camelCaseNameAndMoreToo" reduce ['once charset [#"A" - #"Z"]]] ["camel" "aseNameAndMoreToo"]
 	test [split "camelCaseNameAndMoreToo" reduce ['once 'before charset [#"A" - #"Z"]]] ["camel" "CaseNameAndMoreToo"]
 	test [split "camelCaseNameAndMoreToo" reduce ['once 'after charset [#"A" - #"Z"]]] ["camelC" "aseNameAndMoreToo"]
 
-	test [split "Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['first newline]] ["Pascal^/" "Case^/" "Name^/" {And^/More^/Too^/}]
-	test [split "Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['at 'first newline]] ["Pascal^/" "Case^/" "Name^/" {And^/More^/Too^/}]
-	test [split "Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['after 'first newline]] ["Pascal^/" "Case^/" "Name^/" {And^/More^/Too^/}]
-	test [split "Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['before 'first newline]] ["Pascal^/" "Case^/" "Name^/" {And^/More^/Too^/}]
-	test [split "Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['last newline]] ["Pascal^/" "Case^/" "Name^/" {And^/More^/Too^/}]
-	test [split "Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['at 'last newline]] ["Pascal^/" "Case^/" "Name^/" {And^/More^/Too^/}]
-	test [split "Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['after 'last newline]] ["Pascal^/" "Case^/" "Name^/" {And^/More^/Too^/}]
-	test [split "Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['before 'last newline]] ["Pascal^/" "Case^/" "Name^/" {And^/More^/Too^/}]
-	
+	test [split "Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['first newline]] ["Pascal" {Case^/Name^/And^/More^/Too^/}]
+	test [split "Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['at 'first newline]] ["Pascal" {Case^/Name^/And^/More^/Too^/}]
+	test [split "Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['after 'first newline]] ["Pascal^/" {Case^/Name^/And^/More^/Too^/}]
+	test [split "Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['before 'first newline]] ["Pascal" {^/Case^/Name^/And^/More^/Too^/}]
+	test [split "Pascal^/Case^/Name^/And^/More^/Too" reduce ['last newline]] [{Pascal^/Case^/Name^/And^/More} "Too"]
+	test [split "Pascal^/Case^/Name^/And^/More^/Too" reduce ['at 'last newline]] [{Pascal^/Case^/Name^/And^/More} "Too"]
+	test [split "Pascal^/Case^/Name^/And^/More^/Too" reduce ['after 'last newline]] [{Pascal^/Case^/Name^/And^/More^/} "Too"]
+	test [split "Pascal^/Case^/Name^/And^/More^/Too" reduce ['before 'last newline]] [{Pascal^/Case^/Name^/And^/More} "^/Too"]
+
+	test [split-at-index "abcdef" 0] 			["" "abcdef"]
+	test [split-at-index/last "abcdef" 0] 		["abcdef" ""]
+	test [split-at-index "abcdef" 1] 			["a" "bcdef"]
+	test [split-at-index/last "abcdef" 1] 		["abcde" "f"]
+
+	test [split-at-index at "abcdef" 3 -1]	["b" "cdef"]
+	test [split-at-index at "abcdef" 3 0] 	["" "cdef"]
+	test [split-at-index at "abcdef" 3 1]	["c" "def"]
+
 ;	test [split/at [1 2.3 /a word "str" #iss x: :y]  4    []]	[[1 2.3 /a word] ["str" #iss x: :y]]
 ;	;!! Splitting /at with a non-integer excludes the delimiter from the result
 ;	test [split/at [1 2.3 /a word "str" #iss x: :y] "str" []]	[[1 2.3 /a word] [#iss x: :y]]
