@@ -16,11 +16,23 @@ Red [
 		and rounding to a given scale, for many datatypes. For SPLIT, we
 		also have a number of cases to cover. For example:
 		
-		- Split at a delimiter (into 2 parts)
+		- Split at a delimiter or size (into 2 parts)
 		- Split into N parts at one or more delimiters
+		- Split before or after delimiters
+		- Split up to a certain number of times
+		- Split at the last occurrence of a delimiter or size
 		- Split into N pieces
 		- Splint into pieces of size N
 		- Split into pieces of varying sizes
+		- Split based on predicate tests
+
+		It's important to note that while we want this to be reasonably
+		efficient, it's target use cases are scripting and analysis 
+		scenarios. i.e., making users more efficient for moderate amounts
+		of data, and exploration before optimizing. If you need the fastest
+		splitting, based on size or delimiter, use R/S. Those sub-funcs
+		could be written as routines as well, but we don't have any feedback
+		yet on what's wort the effort.
 		
 		For non-string values, like blocks, you can split into groups based
 		on a custom function, this is sometimes called GROUP or PARTITION, 
@@ -33,6 +45,12 @@ Red [
 		
 		We can't cover every case while also keeping the code managable and
 		the interface not overwhelming or ambiguous.
+		
+		Another goal has a cost, that you can express splits in more than
+		one way. e.g. splitting a YYYY-MM-DD/HH:MM:SS string could be done
+		by multiple delimiter splits, or a single uneven size split. The
+		point of options is that it lets the user choose what expresses 
+		their intent most clearly for a given case.
 		
 		Where Rebol's SPLIT was small enough to keep all in one func, we 
 		have to decide if we want to stay within those feature limits, or
@@ -60,6 +78,8 @@ comment {
 	split break divide separate partition
 	join delimit combine append union	; opposites of split
 	segment section part piece portion slice chunk item
+	
+	Notice how everyone else just copied the [delim opt limit] arg model.
 	
 	VBA:    Split(expression, [ delimiter, [ limit, [ compare ]]])  ; limit=max items returned
 	Python: string.split(separator, maxsplit) ; maxsplit=limit
@@ -360,12 +380,25 @@ split-into-N-parts: function [
 	;-- If the result is too short, i.e., less items than 'size, add
 	;   empty items to fill it to 'size.
 	;   We loop here, because insert/dup doesn't copy the value inserted.
+	;!! This could be done based on a refinement, the idea being that
+	;	it could create a LOT of extra parts, even due to a typo or an
+	;	injection attack of some kind. The real question, though, is
+	;	what is most useful.
 	if parts > length? res [
 		;loop (parts - length? res) [append/only res fill-val series]
 		loop (parts - length? res) [append/only res make series 0]
 	]
 	
 	res
+]
+
+split-into-fixed-parts: function [
+	"If the series can't be evenly split, the last value will be shorter"
+	series [series!]  "The series to split"
+	size   [integer!] "Size of each part"
+][
+	if size < 1 [cause-error 'Script 'invalid-arg size]
+	parse series [collect [any [keep copy series 1 size skip]]]
 ]
 
 split-var-parts: function [
@@ -430,7 +463,7 @@ split-once: function [
 	last:   has? opts 'last
 
 	either all [integer? delim  not any [value before after]] [
-		print 'split-once-at-index
+		dbg 'split-once-at-index
 		either last [
 			split-at-index/last series delim
 		][
@@ -438,7 +471,7 @@ split-once: function [
 		]
 	][
 		; A big question is whether to use find/only or make it a refinement. 
-		print 'splint-once-at-value
+		dbg 'splint-once-at-value
 		if all [string? series  not bitset? delim][delim: form delim]
 		; charsets have to be treated as chars, but return `length?` based on bits used.
 		drop-len: either any [before after][0][
@@ -449,12 +482,12 @@ split-once: function [
 		; Eventually we'll want to use a APPLY/REFINE applicator of some kind.
 		set [p-1 p-2] reduce pos: case [
 								; P-1										P-2
-			all [before last]	[probe 'BL [p: find/last series delim		p]]
-			all [after  last]	[probe 'AL [p: find/tail/last series delim	p]]
-			before 				[probe 'B_ [p: find series delim			p]]
-			after  				[probe 'A_ [p: find/tail series delim		p]]
-			last   				[probe '_L [p: find/last series delim		if p [skip p drop-len]]]
-			'else  				[probe '__ [p: find series delim			if p [skip p drop-len]]]
+			all [before last]	[dbg 'BL [p: find/last series delim		p]]
+			all [after  last]	[dbg 'AL [p: find/tail/last series delim	p]]
+			before 				[dbg 'B_ [p: find series delim			p]]
+			after  				[dbg 'A_ [p: find/tail series delim		p]]
+			last   				[dbg '_L [p: find/last series delim		if p [skip p drop-len]]]
+			'else  				[dbg '__ [p: find series delim			if p [skip p drop-len]]]
 		]
 		; From the above case block, we can see that the exceptional cases are
 		; when no refinement, or only /last are used. i.e. simple splitting.
@@ -539,6 +572,10 @@ do [ ; comment
 
 
 ;-------------------------------------------------------------------------------
+trace: on
+dbg: either trace [:print][:none]
+;-------------------------------------------------------------------------------
+
 
 ;?? Do we need a case sensitive option?
 
@@ -632,13 +669,14 @@ split-ctx: context [
 	]
 
 	split-delimited: function [
+		"Split series at every occurrence of delim"
 		series [series!]
-		delim
+		delim  "Delimiter marking split locations"
 		/before "Include delimiter in the value following it"
 		/at     "(default) Do not include delimiter in results"
 		/after  "Include delimiter in the value preceding it"
-		/first  "(default) Split at the first occurrence of value"
-		/last   "Split at the last occurrence of value"
+		/first  "Split at the first occurrence of value; implies /count 1"
+		/last   "Split at the last occurrence of value; implies /count 1"
 		; TBD: is count worth supporting?
 		/count ct [integer!] "Maximum number of splits to peform; remainder of series is the last"
 		/with opts [block!]  "Block of options to use in place of refinements"
@@ -648,10 +686,16 @@ split-ctx: context [
 		; else for standard parse rules that pass thru to this.
 		dbg ["Split-delimited" mold series mold delim]
 		;if not find delim-types type? :delim [cause-error 'script 'invalid-arg [delim]]
-		if all [
+
+;		if all [
+;			not find delim-types type? :delim 
+;			not block? :delim
+;		][cause-error 'script 'invalid-arg [delim]]
+		; Blocks and integers require special treatment, to use them as parse rules.
+		if any [
 			not find delim-types type? :delim 
-			not block? :delim
-		][cause-error 'script 'invalid-arg [delim]]
+			block? :delim
+		][delim: reduce ['quote delim]]
 		
 		; Set refinement/var vals if a matching named option exists
 		;if opts [set-from-opts opts]
@@ -701,11 +745,6 @@ split-ctx: context [
 	;-------------------------------------------------------------------------------
 
 
-	trace: on
-	dbg: either trace [:print][:none]
-
-;-------------------------------------------------------------------------------
-
 	block-of-ints?: func [value][
 		all [block? :value  attempt [all-are? reduce value integer!]]
 	]
@@ -727,13 +766,16 @@ split-ctx: context [
 		;
 		; Dialected rule handlers MUST set 'res
 		=num: =once: =mod: =ord: =pos: =dlm: =ct: none
+		=rule-1: =rule-2: none ; multi-split rules
 		split-rule: [
-			(=num: =once: =mod: =ord: =pos: =dlm: =ct: none)
+			(=num: =once: =mod: =ord: =pos: =dlm: =ct: =rule-1: =rule-2: none)
+			
+			multi-split=
 			
 			; Single delim, just in a block rather than as a direct arg
 			; Into N parts
-			'into set =num integer! opt [['parts | 'pieces | 'chunks]] (
-				dbg ['>> 'split-into-N-parts]
+			| 'into set =num integer! opt [['parts | 'pieces | 'chunks]] (
+				dbg 'split-into-N-parts
 				res: split-into-N-parts series =num
 			)
 
@@ -750,7 +792,6 @@ split-ctx: context [
 				opt count=
 				(
 					dbg ['=num =num '=once =once '=mod =mod '=ord =ord '=pos =pos '=dlm mold =dlm '=ct =ct]
-					res: 'TBD
 					;-----
 					opts: reduce [=mod =ord]
 					if =once [repend opts ['count 1]]
@@ -759,7 +800,7 @@ split-ctx: context [
 					; it go through split-delimited when it really shouldn't for cases
 					; where =pos is set. That should go directly to split-at-index,
 					; which split-delimited now has logic handling for, to dispatch.
-					; There it checks if the split count is one, calls split-once, and
+					; There it checks if the split count is 1, calls split-once, and
 					; split-once checks the various options in play to dispatch to
 					; split-at-index when appropriate. split-once is pretty ugly, as is
 					; the refinement/opts propagation, but that logic would otherwise
@@ -792,6 +833,17 @@ split-ctx: context [
 			]
 
 
+		]
+		multi-split=: [
+			(dbg "multi-split")
+			; Use any-type! while exploring ideas
+			opt 'first 'by set =rule-1 any-type! (
+				split-series: split series =rule-1
+				;print ['MS-1 mold series =rule-1 mold split-series]
+			)
+			'then  opt 'by set =rule-2 any-type! (
+				res: collect [foreach sub-ser split-series [keep/only split sub-ser =rule-2]]
+			)
 		]
 		delimiter=: [
 			;'as-delim any-type! ("Treat as literal value, not position or rule")
@@ -827,9 +879,10 @@ split-ctx: context [
 				res: split-delimited series dlm
 			]
 			integer? :dlm [
-				dbg "integer; split into chunks of its size"
-				if size < 1 [cause-error 'Script 'invalid-arg size]
-				rule: [collect [any [keep copy series 1 size skip]]]
+				dbg "integer; split-into-fixed-parts, split into chunks of its size"
+				res: split-into-fixed-parts series dlm
+				;if size < 1 [cause-error 'Script 'invalid-arg size]
+				;rule: [collect [any [keep copy series 1 size skip]]]
 			]
 			; alt way to check
 			;all [not integer? :dlm  not block? :dlm  not any-function? :dlm][
@@ -1014,6 +1067,9 @@ split-ctx: context [
 	; New design for negative skip vals
 	test [split [1 2 3 4 5 6] [2 -2 2]]             [[1 2] [5 6]]
 
+	test [split "YYYYMMDD/HHMMSS"  [4 2 2 -1 2 2 2]]	["YYYY" "MM" "DD" "HH" "MM" "SS"]
+	test [split "Mon, 24 Nov 1997" [3 -2 2 -1 3 -1 4]]	["Mon" "24" "Nov" "1997"]
+
 	test [split "1,2,3" [at #","]]     	["1" "2" "3"]
 	test [split "1,2,3" [before #","]]  ["1" ",2" ",3"]
 	test [split "1,2,3" [after #","]]   ["1," "2," "3"]
@@ -1023,6 +1079,8 @@ split-ctx: context [
 	;	the next or previous value, so what constitutes an empty field
 	;	at the end, as with simple splitting? These results make the
 	;	most sense to me, but I'm only 90% confident in that choice.
+	;	The crux being that if a delimiter exists it needs to be in the
+	;	result, attached to a part.
 	test [split ",1,2,3," [before #","]]  [",1" ",2" ",3" ","]	; delim goes with next value
 	test [split ",1,2,3," [after #","]]   ["," "1," "2," "3,"]  ; delim goes with prev value
 
@@ -1062,6 +1120,47 @@ split-ctx: context [
 	test [split-at-index at "abcdef" 3 -1]	["b" "cdef"]
 	test [split-at-index at "abcdef" 3 0] 	["" "cdef"]
 	test [split-at-index at "abcdef" 3 1]	["c" "def"]
+
+	test [split [1 2 3 4 5 6 3 7 8 9]     [as-delim 3]]		[[1 2] [4 5 6] [7 8 9]]
+	test [split [1 2 [3] 4 5 6 [3] 7 8 9] [as-delim [3]]]	[[1 2] [4 5 6] [7 8 9]]
+
+	; Multi-split tests
+			
+	test [split "abc<br>de<br><para>fghi<br>jk" [by <para> then <br>]]     [["abc" "de" ""] ["fghi" "jk"]]
+	test [split "abc<br>de<br>FG<para>fghi<br>jk" [by <para> then <br>]]     [["abc" "de" "FG"] ["fghi" "jk"]]
+	test [split "abc<br>de<para><br>fghi<br>jk" [by <para> then <br>]]     [["abc" "de"] ["" "fghi" "jk"]]
+	test [split "<br>abc<br>de<br><para><br>fghi<br>jk<br>" [by <para> then <br>]]     [["" "abc" "de" ""] ["" "fghi" "jk" ""]]
+
+	test [
+		split "<br>abc<br>de<br><para><br>fghi<br>jk<br>"
+		[by [before <para>] then [after <br>]]
+	] [["<br>" "abc<br>" "de<br>"] ["<para><br>" "fghi<br>" "jk<br>"]]
+
+	test [
+		split "Pas_cal^/Ca_se^/Na_me^/XXX^/YYY^/ZZZ"
+		compose/deep [
+			by   [after (newline) 3 times]
+			then #"_"
+		]
+	] [["Pas" "cal^/"] ["Ca" "se^/"] ["Na" "me^/"] ["XXX^/YYY^/ZZZ"]]
+
+	test [
+		split "PascalCaseName camelCaseName dash-marked-name under_marked_name"
+		compose/deep [
+			by   (space)
+			then (charset [#"A" - #"Z" "-_"])
+		]
+	] [["" "ascal" "ase" "ame"] ["camel" "ase" "ame"] ["dash" "marked" "name"] ["under" "marked" "name"]]
+
+	test [
+		split "PascalCaseName camelCaseName dash-marked-name under_marked_name"
+		compose/deep [
+			by   (space)
+			then [before (charset [#"A" - #"Z" "-_"])]
+		]
+	] [["Pascal" "Case" "Name"] ["camel" "Case" "Name"] ["dash" "-marked" "-name"] ["under" "_marked" "_name"]]
+
+;"PascalCaseName"
 
 ;	test [split/at [1 2.3 /a word "str" #iss x: :y]  4    []]	[[1 2.3 /a word] ["str" #iss x: :y]]
 ;	;!! Splitting /at with a non-integer excludes the delimiter from the result
