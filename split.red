@@ -572,7 +572,7 @@ do [ ; comment
 
 
 ;-------------------------------------------------------------------------------
-trace: on
+trace: off
 dbg: either trace [:print][:none]
 ;-------------------------------------------------------------------------------
 
@@ -838,11 +838,11 @@ split-ctx: context [
 			(dbg "multi-split")
 			; Use any-type! while exploring ideas
 			opt 'first 'by set =rule-1 any-type! (
-				split-series: split series =rule-1
+				split-series: split series :=rule-1
 				;print ['MS-1 mold series =rule-1 mold split-series]
 			)
 			'then  opt 'by set =rule-2 any-type! (
-				res: collect [foreach sub-ser split-series [keep/only split sub-ser =rule-2]]
+				res: collect [foreach sub-ser split-series [keep/only split sub-ser :=rule-2]]
 			)
 		]
 		delimiter=: [
@@ -1137,12 +1137,12 @@ split-ctx: context [
 	] [["<br>" "abc<br>" "de<br>"] ["<para><br>" "fghi<br>" "jk<br>"]]
 
 	test [
-		split "Pas_cal^/Ca_se^/Na_me^/XXX^/YYY^/ZZZ"
+		split "Pas_cal^/Ca_se^/Na_me^/XXX^/YY_YY^/ZZZ"
 		compose/deep [
 			by   [after (newline) 3 times]
 			then #"_"
 		]
-	] [["Pas" "cal^/"] ["Ca" "se^/"] ["Na" "me^/"] ["XXX^/YYY^/ZZZ"]]
+	] [["Pas" "cal^/"] ["Ca" "se^/"] ["Na" "me^/"] ["XXX^/YY" "YY^/ZZZ"]]
 
 	test [
 		split "PascalCaseName camelCaseName dash-marked-name under_marked_name"
@@ -1159,6 +1159,14 @@ split-ctx: context [
 			then [before (charset [#"A" - #"Z" "-_"])]
 		]
 	] [["Pascal" "Case" "Name"] ["camel" "Case" "Name"] ["dash" "-marked" "-name"] ["under" "_marked" "_name"]]
+
+	test [
+		split [1 2 3 space 4 5 6 space 7 8 9]
+		compose [
+			by   ['space]
+			then (:even?)
+		]
+	] [ [[2] [1 3]]   [[4 6] [5]]   [[8] [7 9]] ]
 
 ;"PascalCaseName"
 
