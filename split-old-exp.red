@@ -987,3 +987,158 @@ do [ ; comment
 ;	foreach [blk res] split-once-tests [test blk res]
 ;	halt
 ]
+;-------------------------------------------------------------------------------
+
+split-once: function [
+	"Split the series at a position or value, returning the two halves."
+	series [series!]
+	delim  "Delimiting value, or index (think SKIP not AT) if an integer"
+	/value "Split at delim value, not index, if it's an integer"
+	/before "Include delimiter in the second half; implies /value"
+	;/at     "(default) Do not include delimiter in results if /value"
+	/after  "Include delimiter in the first half; implies /value"
+	;/first "(default) Split at the first occurrence of value"
+	/last  "Split at the last position occurrence of value"
+	;/Nth n "Nth occurrence of a value delimiter"
+	/with opts [block!]  "Block of options to use in place of refinements"
+	/local p-1 p-2
+][
+	; Set refinement/var vals if a matching named option exists
+	;if opts [set-from-opts opts]
+	;if opts [foreach val opts [if word? :val [set val true]]]
+	if opts [
+		before: has? opts 'before
+		;at:     has? opts 'at
+		after:  has? opts 'after
+		;first:  has? opts 'first
+		last:   has? opts 'last
+	]
+	
+	either all [integer? delim  not any [value before after]] [
+		dbg 'split-once-at-index
+		either last [
+			split-at-index/last series :delim
+		][
+			split-at-index series :delim
+		]
+	][
+		; A big question is whether to use find/only or make it a refinement. 
+		dbg 'splint-once-at-value
+		if all [string? series  not bitset? delim][delim: form :delim]
+		;if all [any-block? series  not any-block? delim][delim: compose [(delim)]]
+		; charsets have to be treated as chars, but return `length?` based on bits used.
+		drop-len: either any [before after][0][
+			either bitset? :delim [1][
+				;length? :delim
+				either series? :delim [length? :delim][1]
+			]
+		]
+;			drop-len: length? delim
+		; No way to apply or refine funcs in Red yet, so this is a bit ugly/redundant.
+		; Eventually we'll want to use a APPLY/REFINE applicator of some kind.
+		set [p-1 p-2] reduce pos: case [
+								; P-1										P-2
+			all [before last]	[dbg 'BL [p: find/last series delim		p]]
+			all [after  last]	[dbg 'AL [p: find/tail/last series delim	p]]
+			before 				[dbg 'B_ [p: find series delim			p]]
+			after  				[dbg 'A_ [p: find/tail series delim		p]]
+			last   				[dbg '_L [p: find/last series delim		if p [skip p drop-len]]]
+			'else  				[dbg '__ [p: find series delim			if p [skip p drop-len]]]
+		]
+		; From the above case block, we can see that the exceptional cases are
+		; when no refinement, or only /last are used. i.e. simple splitting.
+		;print ['drop drop-len 'p-1 mold p-1 'p-2 mold p-2]
+		reduce either p-1 [
+			[copy/part series p-1   copy p-2]
+		][
+			[copy series]
+		]
+;		pos: either last [
+;			either after [find/tail/last series delim] [find/last series delim]
+;		][
+;			either after [find/tail series delim] [find series delim]
+;		]
+		; Delimiter not found
+;		if none? pos [
+;			pos: either last [series] [tail series]
+;		]
+;		part-1: copy/part series pos
+;		part-2: copy pos
+;		
+;		if any [before after] [
+;			;drop-len: either any [before after][length? delim][0]
+;			drop-len: length? delim
+;			case [
+;				before []
+;				after  []
+;				'else  [] ; delim is at the tail of part 1
+;			]
+;		]
+;		reduce [part-1 part-2]
+	]
+]
+;-------------------------------------------------------------------------------
+
+	split-delimited: function [
+		series [series!]
+		delim
+		/before "Include delimiter in the value following it"
+		/at     "(default) Do not include delimiter in results"
+		/after  "Include delimiter in the value preceding it"
+		/count ct [integer!]
+		/local v
+	][
+		;dbg "delimiter; split at every instance"
+		if not find delim-types type? :delim [cause-error 'script 'invalid-arg [delim]]
+		
+		;dlm-len: either series? dlm [length? dlm] [1]   ; any-string? instead of series?
+		;if all [any-string series  tag? dlm] [dlm-len: add 2 dlm-len]			; tag length doesn't include brackets
+		rule: [
+			collect any [
+				keep copy v [to [delim | end]] ;keep (v)
+				delim ;dlm-len skip  ; is there enough speed gain to make 'skip worth it?
+				[end keep (make series 0) | none]
+			]
+		]
+		
+		parse series rule
+	]
+
+	split-delimited: function [
+		series [series!]
+		delim
+		/before "Include delimiter in the value following it"
+		/at     "(default) Do not include delimiter in results"
+		/after  "Include delimiter in the value preceding it"
+		; TBD: is count worth supporting?
+		;/count ct [integer!] "Maximum number of splits; remainder of series is the last"
+		/local v
+	][
+		; Do we allow blocks as delims? If not, we have to do something
+		; else for standard parse rules that pass thru to this.
+		dbg ["Split-delimited" mold series mold delim]
+		;if not find delim-types type? :delim [cause-error 'script 'invalid-arg [delim]]
+		if all [
+			not find delim-types type? :delim 
+			not block? :delim
+		][cause-error 'script 'invalid-arg [delim]]
+		
+		rule-core: case [
+			before [[
+				keep copy v [opt [ahead delim skip] to [delim | end]]
+			]]
+			after  [[
+				keep copy v [thru [delim | end]]
+			]]
+			'else  [[
+				keep copy v [to [delim | end]]
+				delim
+				[end keep (make series 0) | none]
+			]]
+		]
+		parse series compose/only [collect any (rule-core)]
+
+	]
+
+;-------------------------------------------------------------------------------
+

@@ -1,9 +1,11 @@
 Red [
 	title:  "Split Lab"
 	author: "Gregg Irwin"
+	File:   %split-lab.red
+	Icon:   %split-lab.ico
 ]
 
-;do %split.red
+#include %split.red
         
 input-type: string!
 input: none
@@ -51,6 +53,10 @@ save-test: has [new-entry] [
 
 ;-------------------------------------------------------------------------------
 
+; split-type input rule output
+
+;-------------------------------------------------------------------------------
+
 samples: [
 	[split "abcdefghi" 2]
 	[split "abcdefghi" 3]
@@ -64,30 +70,51 @@ input-samples: [
 	"a,b,c:d,e,f"
 ]
 split-types: [
-	"At every delimiter"
-	"Once at a delimiter"
+	"At every delimiter"	delim
+	"Once at a delimiter"	[once at]
 
-	"Before every delimiter"
-	"Once before a delimiter"
+	"Before every delimiter"	[before delim]
+	"Once before a delimiter"	[once before delim]
 
-	"After every delimiter"
-	"Once after a delimiter"
+	"After every delimiter"		[after delim]
+	"Once after a delimiter"	[once after delim]
 
-	"Into parts of size N"
-	"Into N parts"
-	"Into uneven parts"
+	"Into 2 parts, at a position or delimiter"	[once at]
+	"Into parts of size N"						parts-of-size-N
+	"Into N parts"								into-N-parts ;[into delim parts]
+	"Into uneven parts"							uneven
 
-	"Using a pass/fail test function"
-	"Parition using multiple test functions"
+	"Using a pass/fail test function"			filter
+	"Using multiple test functions"				partition
 
-	"Using a simple parse rule"
+	"Using a simple parse rule"					delim
 
-	"First using one delimiter, then another"
+	"First using one rule, then another"		multi
+]
+
+string-rule-samples: [
+	#","
+	{charset ",:"}
+]
+block-rule-samples: [
+	[]
+	[]
+	[]
+]
+
+;-------------------------------------------------------------------------------
+
+set-split-type-info: has [face] [
+	face: fld-split-type
+	key: pick face/data 2 * face/selected - 1
+	print [mold key tab mold split-types/:key]
 ]
 
 view [
 	across
-	text "I want to split:" fld-split-type:  drop-down 400 data split-types return
+	text "I want to split:" fld-split-type:  drop-list 400 data split-types on-change [
+		set-split-type-info 
+	] return
 	
 	pad 0x10
 	pad 90x0 text snow navy "If String is checked, value used as-is; otherwise loaded and parsed as Red data." return
@@ -107,12 +134,14 @@ view [
 ;		radio "String" on [rule-type: string!]
 ;		radio "Block"     [rule-type: block!] return
 	; hint {char!  OR  string!  OR  charset ",:"  OR  integer!  OR  block!}
-	pad 90x0 text snow navy "If String is checked, rule used as-is; otherwise loaded and used as a Red value." return
+	;pad 90x0 text snow navy "If String is checked, rule used as-is; otherwise loaded and used as a Red value." return
+	pad 90x0 text snow navy "Rule is evaluated (reduced) and used as a Red value; format accordingly." return
 	text "Rule:"   fld-rule:   field 400 hint {charset ",:"}
-	chk-str-rule?: check "String" off return
-	text "Rule is a" pad 0x-5
-		radio "String" [rule-type: string!]
-		radio "Value" on [rule-type: default!] return
+	;chk-str-rule?: check "String" off return
+	return
+;	text "Rule is a" pad 0x-5
+;		radio "String" [rule-type: string!]
+;		radio "Value" on [rule-type: default!] return
 	pad 0x10
 	
 	text "Output:" fld-output: area 400x250
