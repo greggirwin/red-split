@@ -7,6 +7,18 @@ Red [
 	License: 'MIT
 ]
 
+comment [
+	s: "a,b,c,d"
+	profile/show/count [
+		[split s comma]
+		[split-once s comma]
+		[split-once/last s comma]
+		[split-at-index s 4]
+		[split-once/after/last s comma]
+		[split s [once after last #","]]
+	] 10000
+]
+
 e.g.: :comment
 
 ;-------------------------------------------------------------------------------
@@ -17,27 +29,31 @@ dbg: either all [trace][:print][:none]
 
 ;-------------------------------------------------------------------------------
 
-
-filter: function [
-	"Returns two blocks: items that pass the test, and those that don't"
-	series [series!]
-	test [any-function!] "Test (predicate) to perform on each value; must take one arg"
-	/only "Return a single block of values that pass the test"
-	; Getting only the things that don't pass a test means applying NOT
-	; to the test and using /ONLY. Applying NOT means making a lambda.
-	; Not hard, for people who understand anonymous funcs.
-	;/pass "Return a single block of values that pass the test"
-	;/fail "Return a single block of values that fail the test"
-][
-	;print 'XXXXX
-	;TBD: Is it worth optimizing to avoid collecting values we won't need to return?
-	result: reduce [copy [] copy []]
-	foreach value series [
-		;print [tab :value  test :value]
-		append/only pick result make logic! test :value :value
-	]
-	either only [result/1][result]
-]
+; Using PARTITION in place of this now. One less func here. And a good test.
+;filter: function [
+;	"Returns two blocks: items that pass the test, and those that don't"
+;	series [series!]
+;	test [any-function!] "Test (predicate) to perform on each value; must take one arg"
+;	/only "Return a single block of values that pass the test"
+;	; Getting only the things that don't pass a test means applying NOT
+;	; to the test and using /ONLY. Applying NOT means making a lambda.
+;	; Not hard, for people who understand anonymous funcs.
+;	;/pass "Return a single block of values that pass the test"
+;	;/fail "Return a single block of values that fail the test"
+;][
+;	either only [
+;		; Preallocate as may slots as the original series uses
+;		collect/into [foreach value series [if test :value [keep/only :value]]] make series length? series
+;		; Non-preallocating
+;		;collect [foreach value series [if test :value [keep/only :value]]]
+;	][
+;		result: reduce [copy [] copy []]	;?? Should we preallocate `length? series` space here?
+;		foreach value series [
+;			append/only pick result make logic! test :value :value
+;		]
+;		result
+;	]
+;]
 
 map-each: function [
 	"Evaluates body for each value(s) in a series, returning all results."
@@ -53,17 +69,17 @@ map-each: function [
 ]
 
 ; Minimal map-ex: no /skip, always /only
-map-ex: func [
-	"Evaluates a function for all values in a series and returns the results."
-	series [series!]
-	fn [any-function!] "Function to perform on each value; called with value, index, series args"
-][
-	collect [
-		repeat i length? series [
-			keep/only fn series/:i :i :series
-		]
-	]
-]
+;map-ex: func [
+;	"Evaluates a function for all values in a series and returns the results."
+;	series [series!]
+;	fn [any-function!] "Function to perform on each value; called with value, index, series args"
+;][
+;	collect [
+;		repeat i length? series [
+;			keep/only fn series/:i :i :series
+;		]
+;	]
+;]
 ;res: map-ex [1 2 3 a b c #d #e #f] :form
 ;res: map-ex [1 2 3 a b c #d #e #f] func [v i] [reduce [i v]]
 ;res: map-ex [1 2 3 a b c #d #e #f] func [v i s] [reduce [i v s]]
@@ -94,7 +110,7 @@ partition: function [   ; GROUP ?
 		match?: false
 		; Repeat lets us easily access the associated result sub-block.
 		repeat i length? tests [
-			; Unset results are considered a match.
+			; Unset results are truthy, but we need to use set/any to suport them.
 			match?: attempt [tests/:i :value]
 			;match?: to logic! attempt [tests/:i :value]
 			; Add this element to the block for the current predicate
@@ -132,6 +148,9 @@ split-into-N-parts: function [
 	count: parts - 1
 	part-size: to integer! round/down divide length? series parts
 	if zero? part-size [part-size: 1]
+	;!! split-into-fixed-parts may return an extra part due to rounding.
+	;	so we can't just drop it in here.
+	;res: split-into-fixed-parts series part-size
 	res: collect [
 		parse series [
 			count [copy p part-size skip (keep/only p)]
@@ -146,7 +165,7 @@ split-into-N-parts: function [
 	;	injection attack of some kind. The real question, though, is
 	;	what is most useful.
 	if parts > length? res [
-		;loop (parts - length? res) [append/only res fill-val series]
+		; Make a filler value of the same type as the series
 		loop (parts - length? res) [append/only res make series 0]
 	]
 	
@@ -179,9 +198,9 @@ split-var-parts: function [
 ]
 e.g. [
 	blk: [a b c d e f g h i j k]
-	split-parts blk [1 2 3]
-	split-parts blk [1 -2 3]
-	split-parts blk [1 -2 3 10]
+	split-var-parts blk [1 2 3]
+	split-var-parts blk [1 -2 3]
+	split-var-parts blk [1 -2 3 10]
 ]
 
 ; The naming and behavior on this are tricky. In Red, index 1 is *before* the
@@ -210,7 +229,7 @@ split-once: function [
 	/after  "Include delimiter in the first half; implies /value"
 	;/first "(default) Split at the first occurrence of value"
 	/last  "Split at the last position occurrence of value"
-	;/Nth n "Nth occurrence of a value delimiter"
+	;/Nth n "Nth occurrence of a value delimiter" ;!!! I don't think we need this !!!
 	/with opts [block!]  "Block of options to use in place of refinements"
 	/local p-1 p-2
 ][
@@ -251,6 +270,14 @@ split-once: function [
 			last   				[dbg '_L  find/last series delim]
 			'else  				[dbg '__  find series delim]
 		]
+		; We can do it this way too, at the price of do+compose, or 
+		; more elaboarate do-refined as I've explored, which boils
+		; down to that. Given that this func splits the source only
+		; once, always, that's a larger overhead than in the more
+		; general split case where the results outweigh it by far.
+		;fn: 'find 
+		;fn: 'find/last
+		;do compose [(fn) series delim]
 		
 		; From the above case block, we can see that the exceptional cases are
 		; when no refinement, or only /last are used. i.e. simple splitting.
@@ -347,6 +374,8 @@ split-ctx: context [
 			; Set refinement args from options
 			;if count [ct: opts/count]
 		]
+
+		if all [ct  ct < 1] [cause-error 'Script 'invalid-arg ct]
 		
 		dbg ['delim= mold delim 'before= before 'at= at 'after= after 'first= first 'last= last 'count= ct 'with= mold opts]
 
@@ -396,10 +425,15 @@ split-ctx: context [
 		]
 		either count [
 			dbg ['split-delimited-with-count ct]
-			; Copy up to <count> parts
-			parts: parse series compose/only [collect (ct) (rule-core) mark:]
-			; Then tack on the remaining data as the last part
-			append/only parts copy mark
+			; Copy UP TO <count> parts
+			parts: parse series compose/only [collect 1 (ct) (rule-core) mark:]
+			; Then tack on the remaining data as the last part, but not if
+			; they specified more parts than were available.
+			if all [
+				ct <= length? parts
+				not empty? mark
+			][append/only parts copy mark]
+			parts	; be sure to return the parts
 		][
 			parse series compose/only [collect any (rule-core)]
 		]
@@ -562,7 +596,8 @@ split-ctx: context [
 			;]
 			any-function? :dlm [
 				dbg "function; filter into pass/fail"
-				res: filter series :dlm
+				;res: filter series :dlm
+				res: partition series [:dlm]
 			]
 			; Do we want to make it easier on the user, for common cases,
 			; by reducing here?

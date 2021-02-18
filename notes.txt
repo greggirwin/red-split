@@ -1,3 +1,7 @@
+Red split: 2 lines	; splits only at every delimiter
+R3  split: 67 lines	; split into N pieces, sized pieces, uneven pieces, by delimiter, or by parse rule
+New split: ~350 lines	; All R3 does plus [once/count before/after/last value/index filter/partition 2-level-split]
+
 	Notes:   {
 		This work is based on the Rebol SPLIT function, which I designed
 		along with Gabriele Santilli, if my memory serves me.

@@ -2,6 +2,10 @@ Red []
 
 do %split.red
 
+;trace?: on
+;dbg: :print
+;show-all?: yes
+
 comment {
 	split "abc^M^Jde^Mfghi^Jjk" [crlf | #"^M" | newline]]     ["abc" "de" "fghi" "jk"]
 	
@@ -18,15 +22,29 @@ comment {
 		
 }
 
-do [ ; comment
 	test: func [block expected-result /local res err] [
 		if error? set/any 'err try [
-			print [mold/only :block newline tab mold res: do block]
-			if res <> expected-result [print [tab 'FAILED! tab 'expected mold expected-result]]
+			res: do block
+			if any [trace show-all?] [print [mold/only :block newline tab mold res]]
+			if res <> expected-result [
+				if all [not trace not show-all?] [print [mold/only :block newline tab mold res]]
+				print [tab 'FAILED! tab 'expected mold expected-result]
+			]
 		][
 			print [mold/only :block newline tab "ERROR!" mold err]
 		]
+		if any [trace show-all?] [print ""]
 	]
+
+do [ ; comment
+;	test: func [block expected-result /local res err] [
+;		if error? set/any 'err try [
+;			print [mold/only :block newline tab mold res: do block]
+;			if res <> expected-result [print [tab 'FAILED! tab 'expected mold expected-result]]
+;		][
+;			print [mold/only :block newline tab "ERROR!" mold err]
+;		]
+;	]
 	split-once-tests: [
 		[split-once [1 2 3 4 5 6 3 7 8] 3]				[ [1 2 3] [4 5 6 3 7 8] ]
 		[split-once/after [1 2 3 4 5 6 3 7 8] 3]		[ [1 2 3] [4 5 6 3 7 8] ]
@@ -66,19 +84,19 @@ do [ ; comment
 ;-------------------------------------------------------------------------------
 
 do [
-	test: func [block expected-result /local res err] [
-		if error? set/any 'err try [
-			res: do block
-			if any [trace show-all?] [print [mold/only :block newline tab mold res]]
-			if res <> expected-result [
-				if all [not trace not show-all?] [print [mold/only :block newline tab mold res]]
-				print [tab 'FAILED! tab 'expected mold expected-result]
-			]
-		][
-			print [mold/only :block newline tab "ERROR!" mold err]
-		]
-		if any [trace show-all?] [print ""]
-	]
+;	test: func [block expected-result /local res err] [
+;		if error? set/any 'err try [
+;			res: do block
+;			if any [trace show-all?] [print [mold/only :block newline tab mold res]]
+;			if res <> expected-result [
+;				if all [not trace not show-all?] [print [mold/only :block newline tab mold res]]
+;				print [tab 'FAILED! tab 'expected mold expected-result]
+;			]
+;		][
+;			print [mold/only :block newline tab "ERROR!" mold err]
+;		]
+;		if any [trace show-all?] [print ""]
+;	]
 
 	test [split "" 4]  []
 	;test [split "" 0]  [""]			; invalid call
@@ -201,6 +219,24 @@ do [
 	test [split "1 2 3" [before #","]]  ["1 2 3"]
 	test [split "1 2 3" [after #","]]   ["1 2 3"]
 
+	; Spec too many counts
+	test [split "1,2,3"   [at #"," 5 times]]		["1" "2" "3"]
+	test [split "1,2,3"   [before #"," 5 times]]	["1" ",2" ",3"]
+	test [split "1,2,3"   [after #"," 5 times]] 	["1," "2," "3"]
+	test [split ",1,2,3," [at #"," 5 times]]		["" "1" "2" "3" ""]
+	test [split ",1,2,3," [before #"," 5 times]]	[",1" ",2" ",3" ","]
+	test [split ",1,2,3," [after #"," 5 times]]		["," "1," "2," "3,"]
+	test [split ",1,2,3," [at #"," 99 times]]		["" "1" "2" "3" ""]
+	test [split ",1,2,3," [before #"," 99 times]]	[",1" ",2" ",3" ","]
+	test [split ",1,2,3," [after #"," 99 times]]	["," "1," "2," "3,"]
+
+	; TBD add error checks to tests
+	; These SHOULD fail
+	;test [split ",1,2,3," [#"," 0 times]]	["," "1," "2," "3,"]
+	;test [split ",1,2,3," [#"," -1 times]]	["," "1," "2," "3,"]
+
+
+
 	test [split "aaa" [before #"a"]]  ["a" "a" "a"]
 
 	test [split "PascalCaseName" charset [#"A" - #"Z"]] ["" "ascal" "ase" "ame"]
@@ -211,6 +247,8 @@ do [
 	test [split "PascalCaseNameAndMoreToo" reduce ['after charset [#"A" - #"Z"] 3 'times]] ["P" "ascalC" "aseN" "ameAndMoreToo"]
 	test [split "Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['after newline 3 'times]] ["Pascal^/" "Case^/" "Name^/" {And^/More^/Too^/}]
 	test [split "^/Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['after newline 3 'times]] ["^/" "Pascal^/" "Case^/" {Name^/And^/More^/Too^/}]
+	; Delim at end
+	test [split "PascalCaseNameAndMoreTooZ" reduce [charset [#"A" - #"Z"] 3 'times]] ["" "ascal" "ase" "ameAndMoreTooZ"]
 
 	test [split "camelCaseNameAndMoreToo" reduce ['once charset [#"A" - #"Z"]]] ["camel" "aseNameAndMoreToo"]
 	test [split "camelCaseNameAndMoreToo" reduce ['once 'before charset [#"A" - #"Z"]]] ["camel" "CaseNameAndMoreToo"]
