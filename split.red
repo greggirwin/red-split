@@ -144,7 +144,7 @@ split-into-N-parts: function [
 	/local p
 ][
 	if parts < 1 [cause-error 'Script 'invalid-arg parts]
-	if parts = 1 [return series]
+	if parts = 1 [return copy series]
 	count: parts - 1
 	part-size: to integer! round/down divide length? series parts
 	if zero? part-size [part-size: 1]
@@ -207,7 +207,7 @@ e.g. [
 ; first value. But `pick series 1` *is* the first value ("Returns the series 
 ; value at a given index"). For a human, specifying the *size* of the first
 ; part makes sense, with 0 meaning an empty part. Including "relative" or
-; split-at-skip for naming isn't great either, because `/skip`'s meaning in
+; split-at-skip for naming isn't great either, because /skip's meaning in
 ; other funcs is then conflated over splitting into many parts.
 split-at-index: function [
 	"Split the series at the given index (think SKIP not AT); returns the two parts."
@@ -223,6 +223,8 @@ split-once: function [
 	"Split the series at a position or value, returning the two halves."
 	series [series!]
 	delim  "Delimiting value, or index (think SKIP not AT) if an integer"
+	;?? Is there merit to this, or is it better to have the user explicitly
+	;?? cast integer values?
 	/value "Split at delim value, not index, if it's an integer"
 	/before "Include delimiter in the second half; implies /value"
 	;/at     "(default) Do not include delimiter in results if /value"
@@ -230,8 +232,8 @@ split-once: function [
 	;/first "(default) Split at the first occurrence of value"
 	/last  "Split at the last position occurrence of value"
 	;/Nth n "Nth occurrence of a value delimiter" ;!!! I don't think we need this !!!
-	/with opts [block!]  "Block of options to use in place of refinements"
-	/local p-1 p-2
+	/with opts [block! none!]  "Block of options to use in place of refinements"
+	;/local p-1 p-2
 ][
 	; Set refinement/var vals if a matching named option exists
 	;if opts [set-from-opts opts]
@@ -243,7 +245,7 @@ split-once: function [
 		;first:  has? opts 'first
 		last:   has? opts 'last
 	]
-	
+
 	either all [integer? delim  not any [value before after]] [
 		dbg 'split-once-at-index
 		either last [
@@ -253,31 +255,41 @@ split-once: function [
 		]
 	][
 		; A big question is whether to use find/only or make it a refinement. 
-		dbg 'splint-once-at-value
-		if all [string? series  not bitset? delim][delim: form :delim]
+		; Users can double block if needed.
+		dbg 'split-once-at-value
+		if all [
+			string? series
+			not char? :delim		; This is an optimization
+			not bitset? :delim		; This is important for functionality
+		][delim: form :delim]
 		drop-len: case [			; are we keeping or dropping the delimiter
 			any [before after]	[0]	; keep it
-			bitset? :delim 		[1]	; charsets have to be treated as chars, but their length is based on bits used
+			;!! The bitset test isn't needed here, as 'else handles it, but
+			;	is it better to be explicit about them?
+			;bitset? :delim 		[1]	; charsets have to be treated as chars, but their length is based on bits used
 			series? :delim 		[length? :delim]
-			'else	 			[1]	; Scalar values in blocks
+			'else	 			[1]	; Scalar values in blocks, and charsets
 		]
 		; No way to apply or refine funcs in Red yet, so this is a bit ugly/redundant.
 		p-1: case [
-			all [before last]	[dbg 'BL  find/last series delim]
+			;all [before last]	[dbg 'BL  find/last series delim]	; = last
 			all [after  last]	[dbg 'AL  find/tail/last series delim]
-			before 				[dbg 'B_  find series delim]
+			;before 			[dbg 'B_  find series delim]		; = 'else
 			after  				[dbg 'A_  find/tail series delim]
-			last   				[dbg '_L  find/last series delim]
-			'else  				[dbg '__  find series delim]
+			last   				[dbg '_L  find/last series delim]	; = [before last]
+			'else  				[dbg '__  find series delim]		; = before
 		]
 		; We can do it this way too, at the price of do+compose, or 
 		; more elaboarate do-refined as I've explored, which boils
 		; down to that. Given that this func splits the source only
 		; once, always, that's a larger overhead than in the more
 		; general split case where the results outweigh it by far.
+		; But we're already also doing a lot of other work in this
+		; func, so clarity should probably win.
 		;fn: 'find 
 		;fn: 'find/last
-		;do compose [(fn) series delim]
+		;p-1: do compose [(fn) series delim]
+		;p-1: do reduce/into [fn series delim] clear []
 		
 		; From the above case block, we can see that the exceptional cases are
 		; when no refinement, or only /last are used. i.e. simple splitting.
@@ -455,7 +467,8 @@ split-ctx: context [
 		"Split a series into parts, by delimiter, size, number, function, type, or advanced rules"
 		series [series!] "The series to split"
 		;!! need a more general name for this param now, spec or rule maybe.
-		dlm    ;[block! integer! char! bitset! any-string! any-function!] "Split size, delimiter(s), predicate, or rule(s)." 
+		;dlm    ;[block! integer! char! bitset! any-string! any-function!] "Split size, delimiter(s), predicate, or rule(s)." 
+		dlm    "Dialected rule (block), part size (integer), predicate (function), or delimiter." 
 		/local s v
 	][
 		;-------------------------------------------------------------------------------
@@ -508,19 +521,6 @@ split-ctx: context [
 					; win, but not beautiful.
 					append opts 'dialected-call
 					res: split-delimited/with series any [=pos =dlm] opts
-					;-----
-;					case [
-;						=once [
-;							case [
-;								=mod = 'at     [res: split-delimited        series =dlm]
-;								=mod = 'before [res: split-delimited/before series =dlm]
-;								=mod = 'after  [res: split-delimited/after  series =dlm]
-;							]
-;						]
-;						=mod = 'at     [res: split-delimited        series =dlm]
-;						=mod = 'before [res: split-delimited/before series =dlm]
-;						=mod = 'after  [res: split-delimited/after  series =dlm]
-;					]
 				)
 			]
 
@@ -547,7 +547,13 @@ split-ctx: context [
 				sub-series: collect [foreach sub sub-series [keep/only split sub :=sub-rule]]
 			)
 			; Nesting deeper isn't straightforward using this model, because
-			; every level comes back with more deeply nested results.
+			; every level comes back with more deeply nested results. 2 levels
+			; gives us 2D results, 3D results might be generally useful enough
+			; to support, but beyond that I don't see much value. Not that 
+			; deeper dimensions aren't valuable, but we're talking about 
+			; delimited dimensions, where more dimensions means more chance of
+			; conflict, more need for escaping, etc. In the case of numbers, 
+			; you really just want to serialize those structures for efficiency.
 			;opt sub-split=
 		]
 		delimiter=: [
@@ -586,6 +592,7 @@ split-ctx: context [
 				res: split-delimited series dlm
 			]
 			integer? :dlm [
+				;?? Should this split-at-index or split-into-fixed-parts?
 				dbg "integer; split-into-fixed-parts, split into chunks of its size"
 				res: split-into-fixed-parts series dlm
 				;if size < 1 [cause-error 'Script 'invalid-arg size]
@@ -601,7 +608,6 @@ split-ctx: context [
 			]
 			; Do we want to make it easier on the user, for common cases,
 			; by reducing here?
-			;
 			block-of-ints? :dlm [
 				dbg "block of ints"
 				res: split-var-parts series :dlm
@@ -630,6 +636,7 @@ split-ctx: context [
 					dbg "dialected block DONE"
 					; A dialected rule was handled and the result was set.
 					; Nothing else to do here.
+					;TBD ensure res was set. :^)
 				][
 					dbg "Using block as parse rule"
 					; Not a dialected split spec. Use as a parse rule directly.

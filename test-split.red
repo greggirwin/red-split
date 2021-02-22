@@ -117,6 +117,8 @@ do [
 	test [split "abc,de,fghi,jk" #","]              ["abc" "de" "fghi" "jk"]
 	test [split "abc<br>de<br>fghi<br>jk" <br>]     ["abc" "de" "fghi" "jk"]
 
+	test [split "line 1;^/line 2;^/line 3;^/" ";^/"]     ["line 1" "line 2" "line 3" ""]
+
 	test [split "a.b.c" "."]     ["a" "b" "c"]
 	test [split "c c" " "]       ["c" "c"]
 	test [split "1,2,3" " "]     ["1,2,3"]
