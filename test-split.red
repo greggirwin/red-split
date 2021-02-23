@@ -81,6 +81,13 @@ do [ ; comment
 	;halt
 ]
 
+;e.g. [
+;	blk: [a b c d e f g h i j k]
+;	split-var-parts blk [1 2 3]
+;	split-var-parts blk [1 -2 3]
+;	split-var-parts blk [1 -2 3 10]
+;]
+
 ;-------------------------------------------------------------------------------
 
 do [
@@ -117,7 +124,8 @@ do [
 	test [split "abc,de,fghi,jk" #","]              ["abc" "de" "fghi" "jk"]
 	test [split "abc<br>de<br>fghi<br>jk" <br>]     ["abc" "de" "fghi" "jk"]
 
-	test [split "line 1;^/line 2;^/line 3;^/" ";^/"]     ["line 1" "line 2" "line 3" ""]
+	test [split "line 1;^/line 2;^/line 3;^/" ";^/"]  ["line 1" "line 2" "line 3" ""]
+	test [split "line_1:^/line_2:^/line_3:^/" #"^/"]  ["line_1:" "line_2:" "line_3:" ""]
 
 	test [split "a.b.c" "."]     ["a" "b" "c"]
 	test [split "c c" " "]       ["c" "c"]
@@ -161,14 +169,17 @@ do [
 	; the filter/partition behavior with funcs. But is this behavior useful?
 	; Not as much because it throws away the delimiting value. In order to be
 	; more useful, you need to use before/after.
-	; TBD update expected results.
 	test [split [1 2.3 /a word "str" #iss x: :y] refinement!]	[[1 2.3] [word "str" #iss x: :y]]
 	test [split [1 2.3 /a word "str" #iss x: :y] number!]		[[] [] [/a word "str" #iss x: :y]]
 	test [split [1 2.3 /a word "str" #iss x: :y] any-word!]	[[1 2.3 /a] ["str" #iss] [] []]
 
-;	test [split [1 2.3 /a word "str" #iss x: :y] :refinement!]	[[/a] [1 2.3 word "str" #iss x: :y]]
-;	test [split [1 2.3 /a word "str" #iss x: :y] :number!]		[[1 2.3] [/a word "str" #iss x: :y]]
-;	test [split [1 2.3 /a word "str" #iss x: :y] :any-word!]	[[/a word #iss x: :y] [1 2.3 "str"]]
+	; get-word/set-word delims
+	test [split [1 2.3 /a x: :y word "str" #iss] to set-word! 'x]	[[1 2.3 /a] [:y word "str" #iss]]
+	test [split [1 2.3 /a x: :y word "str" #iss] to get-word! 'y]	[[1 2.3 /a x:] [word "str" #iss]]
+	test [split [1 2.3 /a x: :y word "str" #iss] first [x:]]		[[1 2.3 /a] [:y word "str" #iss]]
+	test [split [1 2.3 /a x: :y word "str" #iss] first [:y]]		[[1 2.3 /a x:] [word "str" #iss]]
+	test [split [1 2.3 /a x: :y word "str" #iss] quote x:]			[[1 2.3 /a] [:y word "str" #iss]]
+	test [split [1 2.3 /a x: :y word "str" #iss] quote :y]			[[1 2.3 /a x:] [word "str" #iss]]
 
 	;-------------------------------------------------------------------------------
 	test [split [1 2 3 4 5 6]      [into 2 parts]]    [[1 2 3] [4 5 6]]
@@ -321,7 +332,7 @@ do [
 	test [
 		split [1 2 3 space 4 5 6 space 7 8 9]
 		compose [
-			by   ['space]
+			by   [as-delim space]
 			then (:even?)
 		]
 	] [ [[2] [1 3]]   [[4 6] [5]]   [[8] [7 9]] ]
@@ -329,10 +340,20 @@ do [
 	test [
 		split [1 2 3 space 4 5 6 space 7 8 9]
 		compose [
-			by   (quote 'space)
+			by   [:space]
 			then (:even?)
 		]
 	] [ [[2] [1 3]]   [[4 6] [5]]   [[8] [7 9]] ]
+
+	test [
+		split {{key-a=1^/key-b=2^/key-c=3}}
+		[by newline then by #"="]
+	] [["{key-a" "1"] ["key-b" "2"] ["key-c" "3}"]]
+
+;	test [
+;		split {{key-a=1^/key-b=2^/key-c=3}}
+;		[by newline then by equal]
+;	] [["{key-a" "1"] ["key-b" "2"] ["key-c" "3}"]]
 
 	; Deeper nesting of multi-split rules
 ;	test [

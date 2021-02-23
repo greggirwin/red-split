@@ -196,12 +196,12 @@ split-var-parts: function [
 		]
 	]
 ]
-e.g. [
-	blk: [a b c d e f g h i j k]
-	split-var-parts blk [1 2 3]
-	split-var-parts blk [1 -2 3]
-	split-var-parts blk [1 -2 3 10]
-]
+;e.g. [
+;	blk: [a b c d e f g h i j k]
+;	split-var-parts blk [1 2 3]
+;	split-var-parts blk [1 -2 3]
+;	split-var-parts blk [1 -2 3 10]
+;]
 
 ; The naming and behavior on this are tricky. In Red, index 1 is *before* the
 ; first value. But `pick series 1` *is* the first value ("Returns the series 
@@ -306,8 +306,6 @@ split-once: function [
 
 ;-------------------------------------------------------------------------------
 
-
-
 ;?? Do we need a case sensitive option?
 
 split-ctx: context [
@@ -391,6 +389,12 @@ split-ctx: context [
 		
 		dbg ['delim= mold delim 'before= before 'at= at 'after= after 'first= first 'last= last 'count= ct 'with= mold opts]
 
+		; get-word/set-word values are treated specially in parse, so 
+		; we have to quote them to use them as delimiter values.
+		if any [get-word? :delim  set-word? :delim] [
+			delim: compose [quote (delim)]
+		]
+		
 		; This is only here because /last isn't as easy to do with parse.
 		; Possible of course, just not as clean or obvious. Have to
 		; profile, but find may also be faster.
@@ -461,6 +465,12 @@ split-ctx: context [
 		all [block? :value  attempt [all-are? reduce value :any-function?]]
 	]
 
+;	; common char keywords
+;	dash:		#"-"
+;	underscore:	#"_"
+;	colon:		#":"
+;	equal:		#"="
+
 	set 'split function [
 		;"Split a series into parts; fixed or variable size, fixed number, or at delimiters"
 		;"Split a series into parts, by delimiter, size, number, or advanced rules"
@@ -475,10 +485,10 @@ split-ctx: context [
 		;-- Parse rules
 		;
 		; Dialected rule handlers MUST set 'res
-		=num: =once: =mod: =ord: =pos: =dlm: =ct: none
+		=num: =once: =mod: =ord: =pos: =dlm: =ct: =char-word: none
 		=sub-rule: none ; multi-split rules
 		split-rule: [
-			(=num: =once: =mod: =ord: =pos: =dlm: =ct: =sub-rule: none)
+			(=num: =once: =mod: =ord: =pos: =dlm: =ct: =char-word: =sub-rule: none)
 			
 			multi-split=
 			
@@ -532,10 +542,19 @@ split-ctx: context [
 
 
 		]
+;		sub-rule=: [
+;			char-word= (=sub-rule: =char-word)
+;			| delimiter= (=sub-rule: =delimiter)
+;			| set =sub-rule any-type!
+;		]
 		multi-split=: [
 			;!! Use any-type! while exploring ideas
-			opt 'first 'by set =sub-rule any-type! (
+			;opt 'first 'by set =sub-rule any-type! (
+			opt 'first 'by [char-word= (=sub-rule: =char-word) | set =sub-rule any-type!] (
+			;opt 'first 'by delimiter= (=sub-rule: =delimiter) (
+			;opt 'first 'by sub-rule= (
 				dbg "multi-split"
+				;print ['multi type? :=sub-rule mold :=sub-rule]
 				sub-series: split series :=sub-rule
 				;print ['MS-1 mold series =sub-rule mold sub-series]
 			)
@@ -543,7 +562,9 @@ split-ctx: context [
 			(res: sub-series)
 		]
 		sub-split=: [
-			'then  opt 'by set =sub-rule any-type! (
+			;'then  opt 'by set =sub-rule any-type! (
+			'then  opt 'by [char-word= (=sub-rule: =char-word) | set =sub-rule any-type!] (
+				;print ['multi-sub type? :=sub-rule mold :=sub-rule]
 				sub-series: collect [foreach sub sub-series [keep/only split sub :=sub-rule]]
 			)
 			; Nesting deeper isn't straightforward using this model, because
@@ -556,11 +577,25 @@ split-ctx: context [
 			; you really just want to serialize those structures for efficiency.
 			;opt sub-split=
 		]
+		;!! words referring to standard char! values may benefit from special 
+		;	treatment. You can then use 'as-delim to treat them as words when
+		;	needed, but those will likely be far less common.
+		char-word=: [
+			set =char-word [
+				'null | 'newline | 'slash | 'escape | 'comma | 'lf | 'cr
+				| 'space | 'tab | 'dot | 'dbl-quote 
+				;| 'dash | 'underscore | 'colon | 'equal
+			](
+				;print ['char-word =char-word]
+				=char-word: get =char-word
+			)
+		]
 		delimiter=: [
 			;'as-delim any-type! ("Treat as literal value, not position or rule")
-			'as-delim set =dlm [integer! | block!] ( ;("Treat as literal value, not position or rule")
+			'as-delim set =dlm [integer! | block! | word!] ( ;("Treat as literal value, not position, rule, or char! keyword")
 				=dlm: reduce ['quote =dlm]
 			)
+			| char-word= (=dlm: =char-word)
 			| not [
 				integer!
 				| block! 
@@ -619,6 +654,11 @@ split-ctx: context [
 				res: partition series :dlm
 			]
 			
+;			any [get-word? :dlm  set-word? :dlm] [
+;				dbg probe "get/set-word"
+;				res: split-delimited series :dlm
+;			]
+
 			block? :dlm [
 				dbg "going into block dlm"
 				; Now we have to decide if we let them use any old parse rule, 
