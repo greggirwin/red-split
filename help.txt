@@ -1,0 +1,125 @@
+Red []
+
+{Whet-Split: Hone Your Skill and Stimulate Your Appetite
+
+===Introduction
+
+There's more than one way to split a cat, or an input. Sometimes you 
+need to split at every occurrence of a delimiter, or the first or 
+last; other times at a fixed position or into many parts. Your input
+may be a string or a block of values. Maybe you need to match a	parse
+rule or partition values based on a predicate test. 
+
+How many of those methods and their permutations can a single `split`
+function support cleanly? Will it get progressively harder to use and
+understand, or could it actually make things clearer and easier? Not
+just for the writer, but especially for the readers who come after. Is
+it better to have single-purpose functions for each behavior, or a
+single entry point that codenses everything? Are we willing to include
+extra code in Red's runtime, though any one user may only need a subset
+of features, because in-the-large we all win when this very common task
+is normalized across all Red code? Where do we draw the line?
+
+Another open question is how we provide documentation, help, and ways
+to explore more heavily loaded interfaces (dialects and dialected
+functions). Programmers are used to reading docs for simple functions,
+what parameters and types they take, and what result they return. Tools
+can also provide auto-complete and Intellisense™, but the closest thing
+to that feature for languages are low code and block programming
+environments. Dialects fall somewhere in between parameterized functions
+and languages that are large, general, and wide in scope.
+
+===Introduction: Part 2
+
+The industry also hasn't come up with a definitive answer about how best
+to "learn programming". A CS degree? Coding bootcamp? Disciplined self-
+training and <Coding Katas>(http://codekata.com/)? Many agree that 
+software development is an art and craft as much as it is a science. You
+learn best by doing, starting with simple exercises, building skills,
+and being able to verify your results and understanding. 
+
+<Live Coding>(https://en.wikipedia.org/wiki/Live_coding) and REPLs play a
+prominent role here. But just as dialects and DSLs are focused versions of
+languages, what is the equivalent for live coding? Tools like
+<Jupyter>(https://jupyter.org/) and <Wolfram Notebooks>(http://www.wolfram.com/notebooks/)
+are one approach.
+
+
+===Terminology
+
+*Delimiter:* A value specifying the boundary between separate, independent regions.
+
+*Dialect:* A domain specific sub-language in the context of a more general language.
+
+*Keyword:* A word with special meaning in a language or dialect.
+
+*Part:* A piece, chunk, segment, slice, or region of a Red series.
+
+*Position:* An offset or index in a Red series.
+
+
+===Types of Splitting
+
+Three main areas are the Grammar area (top-left), the Canvas diagram rendering
+area (right), and test Input area (bottom-left). There are headers above each
+area, with controls and information specific to that area.
+
+---By Delimiter
+
+Delimited data is a well known format, using a <delimiter>(https://en.wikipedia.org/wiki/Delimiter)
+to indicate where one thing stops and the next thing starts. 
+
+<By Delimiter>(#Split By Delimiter)
+
+---At an Offset/Index/Position
+
+---Into Equal Parts
+
+---Into N Parts
+
+---Into Uneven Parts
+
+-- Up To N Times
+
+---By Test Predicate(s)
+
+---Using Advanced Rules
+
+
+===Split By Delimiter
+
+===Split at a Position
+
+===Split Into Equal Parts
+
+===Split Into N Parts
+
+===Split Into Uneven Parts
+
+===Split Up To N Times
+
+===Split by Test Predicate(s)
+
+===Split Using Advanced Rules
+
+
+===Input, Rule, Output
+
+===Submitting Your Results
+
+
+===Menus and keys
+
+
+===Navigating
+
+
+===Noting Bugs
+
+
+===About
+
+Whet-Split is an experimental tool for the evaluation of the *split* function
+design and more general training tools for the <Red Language>(https://www.red-lang.org/).
+
+}

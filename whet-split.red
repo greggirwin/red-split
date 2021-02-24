@@ -1,12 +1,13 @@
 Red [
-	title:  "Whetstone"
+	title:  "Whet-Split"
 	author: "Gregg Irwin"
-	file:   %whetstone.red
+	file:   %whet-split.red
 	icon:   %split-lab.ico
 	needs:  view
 ]
 
 #include %split.red
+#include %help.red
         
 comment {
 	What about The Hatchet Challenge? How fast can you pass the split tests?
@@ -27,17 +28,6 @@ task: #(
 )
 
 help-text: {
-	There's more than one way to split a cat, or an input. Sometimes
-	you need to split at every occurrence of a delimiter, or the first
-	or last; other times at a fixed position or into many parts. Your 
-	input may be a string or a block of values. Maybe you need to 
-	match a	parse rule or partition values based on a predicate test. 
-	
-	How many of those methods and their permutations can a single split
-	function support cleanly? Will it get progressively harder to use
-	and understand, or could it actually make things clearer and easier?
-	Not just for the writer, but especially for the readers who come
-	after.
 
 	Sharpen your skills.
 	Hone that code to a fine edge. 
@@ -156,6 +146,10 @@ make-rule: function [
 		]
 	]
 ]
+done: does [
+	; TBD submit results
+	
+]
 
 true-color:  (leaf  + 100) 
 false-color: (brick + 100) 
@@ -180,22 +174,31 @@ view/options [
 	success-marker: text 30x30 "" bold font-size 18 ; with [font: make font! [size: 18 style: 'bold]]
 	return
 	lbl "I think I found a bug:" fld-bug-note: area font-size 12 400x75
-	button "Report" [] return
+	button "&Note" [note-bug] return
 	pad 400x20
-	button "&Instructions" [] 
-	button "&Next Task >>" [next-task]
+	button "Help" [show-help] 
+	button "Next &Task >>" [next-task]
+	pad 35x0 
+	button "&Done" [done]
 	
 ][
 	text: "Hone your splitting skills"
 	selected: fld-rule
 	actors: make object! [
         on-key: function [face event] [
-			;print ['on-key event/key event/flags]
+			;print ['on-key event/key event/flags type? event/key]
 			case [
 				event/ctrl? [
 					switch event/key [
-						#"^N" [next-task]
+						#"^D" [done]
+						#"^N" [note-bug]
 						#"^S" [split-it]
+						#"^T" [next-task]
+					]
+				]
+				'else [
+					switch event/key [
+						F1    [show-help]
 					]
 				]
 			]
