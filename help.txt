@@ -2,13 +2,17 @@ Red []
 
 {Whet-Split: Hone Your Skill and Stimulate Your Appetite
 
-===Introduction
+===Introduction: Part 1
+
+
+
+===Introduction: Part 2
 
 There's more than one way to split a cat, or an input. Sometimes you 
-need to split at every occurrence of a delimiter, or the first or 
-last; other times at a fixed position or into many parts. Your input
+need to split at every occurrence of a delimiter, or the first, or
+last; other times at a fixed position, or into many parts. Your input
 may be a string or a block of values. Maybe you need to match a	parse
-rule or partition values based on a predicate test. 
+rule or partition values based on a predicate test.
 
 How many of those methods and their permutations can a single `split`
 function support cleanly? Will it get progressively harder to use and
@@ -29,7 +33,7 @@ to that feature for languages are low code and block programming
 environments. Dialects fall somewhere in between parameterized functions
 and languages that are large, general, and wide in scope.
 
-===Introduction: Part 2
+===Introduction: Part 3
 
 The industry also hasn't come up with a definitive answer about how best
 to "learn programming". A CS degree? Coding bootcamp? Disciplined self-
@@ -47,7 +51,7 @@ are one approach.
 
 ===Terminology
 
-*Delimiter:* A value specifying the boundary between separate, independent regions.
+*Delimiter:* See Separator.
 
 *Dialect:* A domain specific sub-language in the context of a more general language.
 
@@ -56,6 +60,23 @@ are one approach.
 *Part:* A piece, chunk, segment, slice, or region of a Red series.
 
 *Position:* An offset or index in a Red series.
+
+*Separator:* A value specifying the boundary between separate, independent regions.
+
+
+===The SPLIT Interface
+
+
+===Keywords
+
+
+[
+    every once into as-delim
+    first last
+    at before after
+    times
+    first by then
+]
 
 
 ===Types of Splitting
@@ -88,19 +109,82 @@ to indicate where one thing stops and the next thing starts.
 
 ===Split By Delimiter
 
+This is the most widely used form of splitting. And many languages have
+a *split* function. They also almost all follow a fixed pattern with
+regard to their spec: *split \[string delimiter opt limit\]*  I have a
+hard time believing that the *limit* feature is /so/ widely useful that
+it's there on merit. Everybody just copied what came before. Or they
+say to use regexes. Some langs also added a refinement to omit empty
+results.
+
+What this model lacks is /any other/ useful feature, like splitting at
+only the first or last occurrence of the separator. Or /including/ the
+separator in the result. For example, you want to split at *:*, but
+keep it with the left part; or split at uppercase characters, but keep
+them with the right part. Rust adds some variants, with the result of 
+having 13 different `split\*` functions.
+
+Most telling, for Red, is that other langs only consider strings as
+the input and characters, or sometimes strings, as the separator. This
+makes sense, but is <short-sighted>(#FutureThought) for Red.
+
+
 ===Split at a Position
+
+Split just once, giving two parts. The data is not marked by a 
+delimiting value, but the size of the either the first or last
+part.
 
 ===Split Into Equal Parts
 
+*Splitting a large file:* Each part should be no more than N bytes. Of
+course this use case has limits, and a stream based approach, reading
+and writing each part in sequence should be used for very large files.
+
+*Breaking work up:* When data has the potential to cause processing
+errors, it can be helpful to work on smaller parts of the data, both
+for error handling and user interactions. This is especially true when
+cumulative errors or resource constraints come into play.
+
 ===Split Into N Parts
+
+*Distributing work:* You have N workers and want to give each a part of
+the data to work on.
+
 
 ===Split Into Uneven Parts
 
+*Small Fixed Values:* _YYYYMMDD_ into parts of size _\[4 2 2\]_.
+
+*Tabular Data:* The much-maligned, but still useful, flat file.
+
+*Schema Based Data:* A schema\/header tells you the size of each part in
+a payload.
+
+*Historical Data:* Legacy formats are often based on fixed size fields.
+
+
 ===Split Up To N Times
+
+When you want to split more than once, but less than every time. This
+can be useful if you want to check individual parts, and not split
+any more than necessary once you find what you want. 
+
 
 ===Split by Test Predicate(s)
 
+Partition data into groups based on a test.
+
+*Data Analysis:* How many of a particular type of data occur, relative
+to others? What are the min\/max or average values for all the numeric
+items?
+
+*Specialize Processing:* Break data up into groups of small and large
+values, so you can send each to a specific handler.
+
 ===Split Using Advanced Rules
+
+Think *parse+collect*.
 
 
 ===Input, Rule, Output
@@ -116,6 +200,13 @@ to indicate where one thing stops and the next thing starts.
 
 ===Noting Bugs
 
+===FutureThought
+
+Splitting is easy. Parsing is hard.
+
+Keyword oriented languages and data.
+
+New ways to think about data and how to leverage Red's datatypes.
 
 ===About
 

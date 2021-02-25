@@ -28,27 +28,12 @@ task: #(
 )
 
 help-text: {
-
-	Sharpen your skills.
+"	Sharpen your skills.
 	Hone that code to a fine edge. 
 	Hone your splitting skills.
-	
-	keyword: [
-		'every | 'once | 'into | 'as-delim
-		| 'first | 'next | 'then | 'by ("first/next/then/by go with multi-split")
-		| 'times ("Goes with count")
-		| ordinal
-		| delim-modifier
-	]
-	delim-modifier=: [
-		set =mod ['at | 'before | 'after] ; ("before+first/after+last make no sense") 
-	]
-	ordinal=: [set =ord ['first | 'last]] ; | Nth] ("Implies once")], 'times = count
-	count=: [set =ct integer! 'times]
-	
 }
 
-; compose [after every (string!)]
+; compose [after every (string!)]"
 ; compose [after every (all-word!)]
 
 inputs: [

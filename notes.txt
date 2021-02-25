@@ -92,6 +92,8 @@ comment {
 			split_at    int break at index N
 			split_once  ch  split at first dlm
 			split_terminator Equivalent to split, except that the trailing substring is skipped if empty.
+	.NET https://docs.microsoft.com/en-us/dotnet/api/system.string.split?view=net-5.0
+		so great to see how they support multiple chars and removing empty elements. 
 }
 
 

@@ -7,6 +7,10 @@ Red [
 	License: 'MIT
 ]
 
+;?? Should we use `sep` for separator, rather than `dlm/delim` for delimiter?
+;	It has a few advantages: 1) It's position vs value agnostic, 2) There is
+;	really only one viable abbreviation, 3) It has a vowel in the middle.
+
 comment [
 	s: "a,b,c,d"
 	profile/show/count [
@@ -84,14 +88,18 @@ map-each: function [
 ;res: map-ex [1 2 3 a b c #d #e #f] func [v i] [reduce [i v]]
 ;res: map-ex [1 2 3 a b c #d #e #f] func [v i s] [reduce [i v s]]
 
+blockify: func [value][compose [(:value)]]
+
 partition: function [   ; GROUP ?
 	"Group values by matching tests (predicates); last group didn't match any"
 	series [series!] "Each value is passed to each test, in turn, until one matches"
-	tests  [block!]  "Block of single-arity functions; unset results not supported"
+	tests  [any-function! block!]  "Block of single-arity functions; unset results not supported"
+	/only "Don't return values that fail all tests"
 ][
 	; So the caller can just use get-words in a block. Otherwise 99.9%
 	; of callers will have to use `reduce` themselves.
-	tests: attempt [reduce tests]
+	tests: either block? :tests [attempt [reduce tests]][blockify :tests]
+	;tests: attempt [reduce compose [(tests)]]	; blockify single func args
 	; No arity or type checking for given predicate funcs.
 	if not parse tests [some any-function!] [
 		cause-error 'Script 'invalid-arg [tests]
@@ -117,9 +125,13 @@ partition: function [   ; GROUP ?
 			; and break so it's not added to others.
 			if match? [append/only result/:i :value  break]
 		]
-		; If none matched, put it in the default block where no predicate matched.
-		if not match? [append/only last result :value]
+		; If none matched, put it in the default block where no predicate
+		; matched, unless they say they didn't want those values (with /only).
+		if not only [
+			if not match? [append/only last result :value]
+		]
 	]
+	if only [remove back tail result]	; drop last (empty) part
 	result
 ]
 ;data: [0.5 1 2 3.4 5.6 7 8.9 0 100]
@@ -336,6 +348,8 @@ split-ctx: context [
 	; also be able to compose the ops in so [/before/at/after] map to
 	; [to | thru] + [dlm | none] and /count maps to [N | []] when composed.
 
+	;?? What should the behavior be if the delimiter is an empty series,
+	;   i.e. zero length? Other langs treat it as split at every value.
 	split-delimited: function [
 		"Split series at every occurrence of delim"
 		series [series!]
