@@ -4,6 +4,25 @@ Red []
 
 ===Introduction: Part 1
 
+This app in an experiment. Instructions are intentionally vague at
+times, to see what you try, naturally, without looking at a detailed
+spec. Why? Because people tend to ignore documentation and do just
+that, try things until they get it right. That does *not* mean we'll
+take what people try and make that the design. They are clues from
+which we can look for patterns.
+
+This leads to the question of "How do we know what people try?". The
+answer is that this app collects data you can share, so we can learn
+from it. Because people don't like sharing data, especially if they
+think it makes them look bad (note: anything you try is valid, not
+wrong), but they love a challenge. So we'll make it a game. Run
+through a series of tasks and the app records not only what you tried,
+but how long it took you. You can do it more than once, so we can also
+see how people learn and retain that knowledge.
+
+Have fun, and please share what you learn.
+
+Game on!
 
 
 ===Introduction: Part 2
@@ -22,16 +41,18 @@ it better to have single-purpose functions for each behavior, or a
 single entry point that codenses everything? Are we willing to include
 extra code in Red's runtime, though any one user may only need a subset
 of features, because in-the-large we all win when this very common task
-is normalized across all Red code? Where do we draw the line?
+is normalized across all Red code? Where do we draw the line? Those are
+some of the questions we hope to answer with this app.
 
 Another open question is how we provide documentation, help, and ways
 to explore more heavily loaded interfaces (dialects and dialected
 functions). Programmers are used to reading docs for simple functions,
-what parameters and types they take, and what result they return. Tools
+what parameters and types they take, and the result they return. Tools
 can also provide auto-complete and Intellisense™, but the closest thing
 to that feature for languages are low code and block programming
 environments. Dialects fall somewhere in between parameterized functions
 and languages that are large, general, and wide in scope.
+
 
 ===Introduction: Part 3
 
@@ -47,6 +68,11 @@ prominent role here. But just as dialects and DSLs are focused versions of
 languages, what is the equivalent for live coding? Tools like
 <Jupyter>(https://jupyter.org/) and <Wolfram Notebooks>(http://www.wolfram.com/notebooks/)
 are one approach.
+
+But the "experiment at a time" approach is different than exploration.
+How do we explore a new area? Other Red \*-lab tools show a way. Give the
+user a tool to poke around and see results, like live coding, but in a 
+more constrained, domain specific way.
 
 
 ===Terminology
@@ -66,48 +92,68 @@ are one approach.
 
 ===The SPLIT Interface
 
+  USAGE:
+     SPLIT series dlm
+
+  DESCRIPTION: 
+     Split a series into parts, by delimiter, size, number, function, type, 
+     or advanced rules. 
+     
+     SPLIT is a function! value.
+
+  ARGUMENTS:
+     series [series!] "The series to split."
+     dlm    {Dialected rule (block), part size (integer), predicate (function),
+             or separator.}
+
+That's all you get right now. Why? Because this tool is about exploration,
+seeing what people try when they /don't/ know what to do, what results they
+expect, and how many things "just work".
+
+It's important to note that you may need to use `reduce` or `compose`
+when writing your rule.
 
 ===Keywords
 
+OK, you win, here are some hints when using a dialected block as your
+delimiting rule. Note that *first* is listed twice, but only to show
+that its context matters.
 
-[
     every once into as-delim
     first last
     at before after
     times
     first by then
-]
+
+What happens if your rule isn't recognized as a *split* dialect input?
+It's treated as a *parse* rule. Given that, does *split* still have
+value? You bet it does, just as *collect* hides details, so does split,
+and it makes your intent clear, which is the ultimate goal.
 
 
 ===Types of Splitting
 
-Three main areas are the Grammar area (top-left), the Canvas diagram rendering
-area (right), and test Input area (bottom-left). There are headers above each
-area, with controls and information specific to that area.
+<By Delimiter>(#SplitByDelimiter)
 
----By Delimiter
+<At an Offset\/Index\/Position>(#Split at a Position)
 
-Delimited data is a well known format, using a <delimiter>(https://en.wikipedia.org/wiki/Delimiter)
-to indicate where one thing stops and the next thing starts. 
+<Into Equal Parts>(#Split Into Equal Parts)
 
-<By Delimiter>(#Split By Delimiter)
+<Into N Parts>(#Split Into N Parts)
 
----At an Offset/Index/Position
+<Into Uneven Parts>(#Split Into Uneven Parts)
 
----Into Equal Parts
+<Up To N Times>(#Split Up To N Times)
 
----Into N Parts
+<By Test Predicate(s)>(#Split By Test Predicate(s)
 
----Into Uneven Parts
-
--- Up To N Times
-
----By Test Predicate(s)
-
----Using Advanced Rules
+<Using Advanced Rules>(#Split Using Advanced Rules)
 
 
 ===Split By Delimiter
+
+Delimited data is a well known format, using a <delimiter>(https://en.wikipedia.org/wiki/Delimiter)
+to indicate where one thing stops and the next thing starts. 
 
 This is the most widely used form of splitting. And many languages have
 a *split* function. They also almost all follow a fixed pattern with
@@ -137,9 +183,10 @@ part.
 
 ===Split Into Equal Parts
 
-*Splitting a large file:* Each part should be no more than N bytes. Of
-course this use case has limits, and a stream based approach, reading
-and writing each part in sequence should be used for very large files.
+*Splitting a large file:* Each part should be no more than N bytes or
+may be a dataset where each record is a fixed size. Of course this use
+case has limits, and a stream based approach, reading and writing each
+part in sequence should be used for very large files.
 
 *Breaking work up:* When data has the potential to cause processing
 errors, it can be helpful to work on smaller parts of the data, both
@@ -151,10 +198,14 @@ cumulative errors or resource constraints come into play.
 *Distributing work:* You have N workers and want to give each a part of
 the data to work on.
 
+*Secure Fragments:* Each part is useless, and can't be decrypted, without
+all the others.
+
 
 ===Split Into Uneven Parts
 
-*Small Fixed Values:* _YYYYMMDD_ into parts of size _\[4 2 2\]_.
+*Small Fixed Values:* _YYYYMMDD_ into _\[YYYY MM DD\]_, or 
+_Mon, 24 Nov 1997_ into \["Mon" "24" "Nov" "1997"\].
 
 *Tabular Data:* The much-maligned, but still useful, flat file.
 
@@ -168,7 +219,9 @@ a payload.
 
 When you want to split more than once, but less than every time. This
 can be useful if you want to check individual parts, and not split
-any more than necessary once you find what you want. 
+any more than necessary once you find what you want. Or when there's
+more than one "header" part but a trailing payload that may contain
+separators.
 
 
 ===Split by Test Predicate(s)
@@ -177,7 +230,7 @@ Partition data into groups based on a test.
 
 *Data Analysis:* How many of a particular type of data occur, relative
 to others? What are the min\/max or average values for all the numeric
-items?
+items (first you have to find them)?
 
 *Specialize Processing:* Break data up into groups of small and large
 values, so you can send each to a specific handler.
@@ -187,12 +240,19 @@ values, so you can send each to a specific handler.
 Think *parse+collect*.
 
 
-===Input, Rule, Output
+===UI: Goal, Input, Rule, Output
+
+
 
 ===Submitting Your Results
 
 
 ===Menus and keys
+
+*F1:* Help
+*F5:* Split
+*Ctrl+Left:* Previous Task
+*Ctrl+Right:* Next Task
 
 
 ===Navigating
@@ -200,17 +260,28 @@ Think *parse+collect*.
 
 ===Noting Bugs
 
+
 ===FutureThought
 
-Splitting is easy. Parsing is hard.
+Splitting is easy. Parsing is hard. For people coming from other
+languages, *parse* is too much to ask if they just want to process
+some data.
 
-Keyword oriented languages and data.
+Keyword oriented languages and data. Think of a dialect like *draw*
+where keywords play a prominent role, for each item to draw, followed
+by parameters for it. We can design data in a similar way, making it
+variable length in content, but easy to understand by looking for
+markers.
 
 New ways to think about data and how to leverage Red's datatypes.
+Again, *parse* may be more than people want to deal with, and more
+than they need, but need something more flexible than flat blocks
+or key-value structures.
 
 ===About
 
-Whet-Split is an experimental tool for the evaluation of the *split* function
-design and more general training tools for the <Red Language>(https://www.red-lang.org/).
+Whet-Split is an experimental tool for the evaluation of the *split*
+function design and more general training tools for the
+<Red Language>(https://www.red-lang.org/).
 
 }

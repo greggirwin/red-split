@@ -107,9 +107,16 @@ partition: function [   ; GROUP ?
 	; Result will be a block of blocks.
 	result: copy []
 	; Allocate space for each test in results. No ARRAY in Red (yet).
-	loop add length? tests 1 [
-		append/only result copy []
+	do [ ; Wrapped in DO, because nested funcs make the compiler unhappy
+		add-group: does [append/only result copy []]			
+		loop length? tests [add-group]	; passing results go here
+		if not only [add-group]			; failing results go here
 	]
+;	loop length? tests [append/only result copy []]	; passing results go here
+;	if not only [append/only result copy []]		; failing results go here
+;	loop add length? tests 1 [
+;		append/only result copy []
+;	]
 	; Loop over the series, trying each value against each predicate.
 	; As soon as a value matches one, move to the next value. That is
 	; values can't appear in more than one predicate result. You get
@@ -131,7 +138,7 @@ partition: function [   ; GROUP ?
 			if not match? [append/only last result :value]
 		]
 	]
-	if only [remove back tail result]	; drop last (empty) part
+;	if only [remove back tail result]	; drop last (empty) part
 	result
 ]
 ;data: [0.5 1 2 3.4 5.6 7 8.9 0 100]
@@ -163,12 +170,12 @@ split-into-N-parts: function [
 	;!! split-into-fixed-parts may return an extra part due to rounding.
 	;	so we can't just drop it in here.
 	;res: split-into-fixed-parts series part-size
-	res: collect [
+	res: collect/into [
 		parse series [
 			count [copy p part-size skip (keep/only p)]
 			copy p to end (keep/only p)
 		]
-	]
+	] make block! parts
 	;-- If the result is too short, i.e., less items than 'size, add
 	;   empty items to fill it to 'size.
 	;   We loop here, because insert/dup doesn't copy the value inserted.
@@ -183,6 +190,27 @@ split-into-N-parts: function [
 	
 	res
 ]
+;@Toomasv
+;split-into-N-parts: function [
+;	"If the series can't be evenly split, the last value will be longer"
+;	series [series!]
+;	parts [integer!]
+;	;/into out [block!]
+;][
+;	if parts < 1 [cause-error 'Script 'invalid-arg parts]
+;	;if parts = 1 [return copy series]
+;	;out: any [out make block! div]
+;	out: make block! parts
+;	until [
+;		size: max 1 to integer! (length? series) / parts
+;		part: copy/part series size
+;		series: skip series size
+;		append/only out any [part copy []]
+;		zero? parts: parts - 1
+;	]
+;	head out	; need this or we get UNTIL's result
+;]
+
 
 split-into-fixed-parts: function [
 	"If the series can't be evenly split, the last value will be shorter"
@@ -192,6 +220,33 @@ split-into-fixed-parts: function [
 	if size < 1 [cause-error 'Script 'invalid-arg size]
 	parse series [collect [any [keep copy series 1 size skip]]]
 ]
+; preallocate
+;split-into-fixed-parts: function [
+;	"If the series can't be evenly split, the last value will be shorter"
+;	series [series!]  "The series to split"
+;	size   [integer!] "Size of each part"
+;][
+;	if size < 1 [cause-error 'Script 'invalid-arg size]
+;	res: make block! round/ceiling (length? series) / size
+;	parse series [collect into res [any [keep copy series 1 size skip]]]
+;	res
+;]
+;@Toomasv
+;split-into-fixed-parts: function [
+;	"If the series can't be evenly split, the last value will be shorter"
+;	series [series!]  "The series to split"
+;	size   [integer!] "Size of each part"
+;][
+;	if size < 1 [cause-error 'Script 'invalid-arg size]
+;	;div: round/ceiling/to 1.0 * (length? series) / size 1
+;	div: round/ceiling (length? series) / size
+;	out: make block! div
+;	loop div [append/only out copy/part series series: skip series size]
+;	out
+;;	collect/into [
+;;		loop div [keep/only copy/part series series: skip series size]
+;;	] make block! div
+;]
 
 split-var-parts: function [
 	"Split a series into variable size pieces"
@@ -208,6 +263,37 @@ split-var-parts: function [
 		]
 	]
 ]
+;@Toomasv
+;split-var-parts: function [
+;	"Split a series into variable size pieces"
+;	series [series!] "The series to split"
+;	sizes  [block!]  "Must contain only integers; negative values mean ignore that part"
+;	/only
+;][
+;	if not parse sizes [some integer!][ cause-error 'script 'invalid-arg [sizes] ]
+;
+;	set [len sumdlm lendlm] reduce [length? series  sum sizes  length? sizes]
+;	div: case [
+;		all [only len >= sumdlm][lendlm]
+;		all [only len <  sumdlm][
+;			s: 0
+;			forall sizes [
+;				if len <= s: s + sizes/1 [
+;					break/return also index? sizes sizes: head sizes
+;				]
+;			]
+;		]
+;		all [not only len <= sumdlm][lendlm]
+;		all [not only len >  sumdlm][1 + lendlm]
+;	]
+;	out: make block! div
+;	loop div [
+;		sz: any [first sizes length? series]
+;		append/only out copy/part series series: skip series sz
+;		sizes: next sizes
+;	] 
+;	out
+;]
 ;e.g. [
 ;	blk: [a b c d e f g h i j k]
 ;	split-var-parts blk [1 2 3]
@@ -271,7 +357,7 @@ split-once: function [
 		dbg 'split-once-at-value
 		if all [
 			string? series
-			not char? :delim		; This is an optimization
+			not char? :delim		; This is an optimization, no need for FORM+LENGTH?
 			not bitset? :delim		; This is important for functionality
 		][delim: form :delim]
 		drop-len: case [			; are we keeping or dropping the delimiter
@@ -328,7 +414,9 @@ split-ctx: context [
 		test	"Test to perform against each value; must take one arg if a function"
 	][
 		either any-function? :test [
-			foreach value series [if not test :value [return false]]
+			do [
+				foreach value series [if not test :value [return false]]	;!! this doesn't compile
+			]
 			true
 		][
 			if word? test [test: to lit-word! form test]
@@ -493,7 +581,7 @@ split-ctx: context [
 		;!! need a more general name for this param now, spec or rule maybe.
 		;dlm    ;[block! integer! char! bitset! any-string! any-function!] "Split size, delimiter(s), predicate, or rule(s)." 
 		dlm    "Dialected rule (block), part size (integer), predicate (function), or delimiter." 
-		/local s v
+		/local s v rule
 	][
 		;-------------------------------------------------------------------------------
 		;-- Parse rules
@@ -623,7 +711,7 @@ split-ctx: context [
 			set =mod ['at | 'before | 'after] ; ("before+first/after+last make no sense") 
 		]
 		ordinal=: [set =ord ['first | 'last]] ; | Nth] ("Implies once")], 'times = count
-		count=: [set =ct integer! 'times]
+		count=: [opt ['up 'to] set =ct integer! 'times]
 		
 		;-------------------------------------------------------------------------------
 

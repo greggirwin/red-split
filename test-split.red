@@ -261,7 +261,7 @@ do [
 	test [split "Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['after newline 3 'times]] ["Pascal^/" "Case^/" "Name^/" {And^/More^/Too^/}]
 	test [split "^/Pascal^/Case^/Name^/And^/More^/Too^/" reduce ['after newline 3 'times]] ["^/" "Pascal^/" "Case^/" {Name^/And^/More^/Too^/}]
 	; Delim at end
-	test [split "PascalCaseNameAndMoreTooZ" reduce [charset [#"A" - #"Z"] 3 'times]] ["" "ascal" "ase" "ameAndMoreTooZ"]
+	test [split "PascalCaseNameAndMoreTooZ" compose [(charset [#"A" - #"Z"]) up to 3 times]] ["" "ascal" "ase" "ameAndMoreTooZ"]
 
 	test [split "camelCaseNameAndMoreToo" reduce ['once charset [#"A" - #"Z"]]] ["camel" "aseNameAndMoreToo"]
 	test [split "camelCaseNameAndMoreToo" reduce ['once 'before charset [#"A" - #"Z"]]] ["camel" "CaseNameAndMoreToo"]

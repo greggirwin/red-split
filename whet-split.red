@@ -16,19 +16,46 @@ comment {
 	
 	practice rehearse train exercise drill work-out gym studio kata dojo
 	muscle-memory 
+	
+	load suite
+	if a session for the suite is in progress, use that
+	session data is updated, suites are not; they are templates for sessions
+	
 }
 
-task: #(
-	desc: ""
+cycle: function ['series [word!] /back][
+	ser: get series
+	either back [
+		ser: skip ser -1
+		if head? ser [ser: tail ser]
+	][
+		ser: skip ser 1
+		if tail? ser [ser: head ser]
+	]
+	set series ser
+]
+
+
+task-proto: #(
+	id:    none
+	desc:  ""
 	input: "" 	; string or block
-	goal: []  	; expected output, always a block
-	time: none
+	goal:  []  	; expected output, always a block
+	time:  none
 	tries: []	; be able to see what they actually tried
-	report: none	; [input goal rule note]
+	notes: none	; [input goal rule note]
 )
+;extend task <suite-task>
+
+set-cur-task: does [
+	cur-task: extend copy task-proto first suite
+]
+
+suite: #include %whet-split-suite-1.red
+set-cur-task
 
 help-text: {
-"	Sharpen your skills.
+	Sharpen your skills.
 	Hone that code to a fine edge. 
 	Hone your splitting skills.
 }
@@ -86,11 +113,19 @@ split-it: has [res] [
 	
 ]
 next-task: does [
+	cycle suite
+	set-cur-task
+	;probe cur-task: extend task-proto first suite
+	txt-input/data: random/only inputs
+]
+prev-task: does [
+	cycle suite
+	set-cur-task
 	txt-input/data: random/only inputs
 ]
 make-rule: function [
 	data  "Content from user input field"
-	/local fn
+	/local fn arg
 ][
 	compose=: [
 		'compose/deep/only | 'compose/only/deep | 'compose/deep | 'compose/only | 'compose
@@ -111,15 +146,6 @@ make-rule: function [
 				parse val [set fn compose= set arg [string! | block!]] [
 					do compose [(fn) arg]
 				]
-;				parse val ['compose/deep set arg [string! | block!]] [
-;					compose/deep arg
-;				]
-;				parse val ['compose set arg [string! | block!]] [
-;					compose arg
-;				]
-;				parse val ['reduce set arg [string! | block!]] [
-;					reduce arg
-;				]
 				'else [
 					val
 				]
@@ -131,9 +157,13 @@ make-rule: function [
 		]
 	]
 ]
-done: does [
-	; TBD submit results
+make-note: does [
+	; TBD
 	
+]
+save-results: does [
+	; TBD submit results
+	print 'saving	
 ]
 
 true-color:  (leaf  + 100) 
@@ -152,19 +182,20 @@ view/options [
 	;lbl "Here is your input:" txt-input: content 400x50 {"a,b,c"} return
 	lbl "Here is your input:" txt-input: field 400x50 {"a,b,c"} return
 	lbl "How do you want to split? :" fld-rule: field on-enter [split-it] 
-	button "&Split!" [split-it] return
+	button "Split (F5)" [split-it] return
 	lbl "Here is your result:" ;return
 	;pad 20x0
 	txt-result: content "[ ... ^/^/^/^/^/^/^/^/ ... ]" 
 	success-marker: text 30x30 "" bold font-size 18 ; with [font: make font! [size: 18 style: 'bold]]
 	return
-	lbl "I think I found a bug:" fld-bug-note: area font-size 12 400x75
-	button "&Note" [note-bug] return
+	lbl "Question or Suggestion:" fld-bug-note: area font-size 12 400x75
+	;button "Note" [note-bug] return
+	return
 	pad 400x20
-	button "Help" [show-help] 
-	button "Next &Task >>" [next-task]
+	button "Help (F1)" [show-help] 
+	button "Next Task (F6)" [next-task]
 	pad 35x0 
-	button "&Done" [done]
+	button "Save" [save-results]
 	
 ][
 	text: "Hone your splitting skills"
@@ -175,18 +206,48 @@ view/options [
 			case [
 				event/ctrl? [
 					switch event/key [
-						#"^D" [done]
-						#"^N" [note-bug]
-						#"^S" [split-it]
-						#"^T" [next-task]
+;						#"^I" [split-it]
+;						#"^N" [make-note]
+						#"^S" [save-results]
+;						#"^T" [next-task]
+						left  [prev-task]
+						right [next-task]
 					]
 				]
 				'else [
 					switch event/key [
 						F1    [show-help]
+						F5    [split-it]
+						F6    [next-task]
 					]
 				]
 			]
 		]
+;        on-key-down: function [face event] [
+;			;print ['on-key event/key event/flags type? event/key]
+;			case [
+;				event/ctrl? [
+;					switch event/key [
+;;						#"^I" [split-it]
+;;						#"^N" [make-note]
+;						#"^S" [save-results]
+;;						#"^T" [next-task]
+;					]
+;				]
+;				find event/flags 'aux-down [
+;					switch event/key [
+;						left  [prev-task]
+;						right [next-task]
+;					]
+;				]
+;				'else [
+;					switch event/key [
+;						F1    [show-help]
+;						F5    [split-it]
+;						F6    [next-task]
+;					]
+;				]
+;			]
+;		]
 	]
 ]
