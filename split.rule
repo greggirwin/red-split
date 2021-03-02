@@ -1,0 +1,98 @@
+DiaGrammar [Options: [
+    grammar-only?: false 
+    ruleset: true 
+    hovering: true 
+    string-input: false 
+    case-parsing: false 
+    live-edit?: true 
+    live-parse?: true 
+    iterate-times: 1 
+    max-iterate: 5 
+    font-size: 11 
+    selected-rule: "split-test+" 
+    latest-inputs: [
+        "split.inp" %../../greggirwin/red-split/split.inp 
+        "split-grammar.test" %../../greggirwin/red-split/split-grammar.test
+    ]
+]]
+; Red SPLIT function dialect
+
+multi-split: [
+	opt 'first 'by split ['then] opt 'by split
+]
+
+;temp: ['split string! ahead block! into [some integer!]]
+;temp: ['split string! split]
+;temp: [into [some integer!]]
+
+split: [
+	integer! ("Into parts of size N, last may be shorter")
+	;| 'into integer! ("Into parts of size N, last may be shorter")
+	;| into [some integer!] ("into parts at relative offsets")
+	| delimiter ("At every delimiter")
+	| any-function! ("into 2 groups; pass/fail test, partition by func")
+	| ahead block! into [
+		multi-split
+		| some integer! ("into parts at relative offsets")
+		| opt 'every integer! ("Into parts of size N, last may be shorter")
+		| 'into integer! opt ['parts | 'pieces | 'chunks] ("Into N parts, last may be longer; tail word is a no-op")
+		| [some any-function!] ("into N+1 groups, partition by func; last group = default")
+		| [
+			  'once opt delim-modifier
+			| opt delim-modifier opt 'every
+		]
+		opt ordinal
+		[
+			  delimiter
+			| position
+		]
+		opt count
+	]
+]
+
+keyword: [
+	'every | 'once | 'into | 'as-delim
+	| 'first | 'next | 'then | 'by ("first/next/then/by go with multi-split")
+	| 'times ("Goes with count")
+	| ordinal
+	| delim-modifier
+]
+
+delimiter: [
+	;'as-delim integer! ("Treat as literal value, not position or rule")
+	'as-delim [integer! | block! | word! | paren!] ("Treat as literal value, not position or rule")
+	;| any-type!
+	| not [
+		integer!
+		| block! 
+		| any-function!
+		| unset!
+	  ]
+	  skip
+]
+;delimiter: [any-type!]
+;delimiter: [
+;	'as-delim [integer! | block!] ("Treat as literal value, not position or rule")
+;]
+
+position: [integer!]
+
+; Delim modifiers are only compatible with delimiters, not positions.
+delim-modifier: [
+	'before | 'at | 'after ("before+first/after+last with position make no sense") 
+]
+; First/Last are compatible with delimiters and positions.
+; Nth is only compatible with delimiters.
+ordinal: [['first | 'last | Nth] ("Implies once")]
+
+count: [opt ['up 'to] integer! 'times]
+
+; No, this is not how I think we should do it. Just playing.
+Nth: [
+	ahead block! into [integer! ['st | 'nd | 'rd]]
+]
+
+; For testing inputs in DiaGrammar
+split-test: ['split [word! | string! | block!] split]
+split-test+: [some into split-test] ; for testing
+
