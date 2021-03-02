@@ -254,6 +254,9 @@ do [
 
 	test [split "PascalCaseName" charset [#"A" - #"Z"]] ["" "ascal" "ase" "ame"]
 	test [split "PascalCaseName" reduce ['before charset [#"A" - #"Z"]]] ["Pascal" "Case" "Name"]
+	test [split "PascalCaseName" [before (charset [#"A" - #"Z"])]]  ["Pascal" "Case" "Name"]
+	test [split "PascalCaseName" compose [before (charset [#"A" - #"Z"])]]  ["Pascal" "Case" "Name"]
+	test [split "a,b,c" [before (charset [#"A" - #"Z"])]]  ["a,b,c"]
 
 	test [split "PascalCaseNameAndMoreToo" reduce [charset [#"A" - #"Z"] 3 'times]] ["" "ascal" "ase" "ameAndMoreToo"]
 	test [split "PascalCaseNameAndMoreToo" reduce ['before charset [#"A" - #"Z"] 3 'times]] ["Pascal" "Case" "Name" "AndMoreToo"]
@@ -290,8 +293,14 @@ do [
 
 	test [split [1 2 3 4 5 6 3 7 8 9]     [before as-delim 3]]		[[1 2] [3 4 5 6] [3 7 8 9]]
 	test [split [1 2 3 4 5 6 3 7 8 9]     [after as-delim 3]]		[[1 2 3] [4 5 6 3] [7 8 9]]
-	test [split [1 2 3 4 5 6 3 7 8 9]     [before last as-delim 3]]		[[1 2 3 4 5 6] [3 7 8 9]]
-	test [split [1 2 3 4 5 6 3 7 8 9]     [after last as-delim 3]]		[[1 2 3 4 5 6 3] [7 8 9]]
+	test [split [1 2 3 4 5 6 3 7 8 9]     [before last as-delim 3]]	[[1 2 3 4 5 6] [3 7 8 9]]
+	test [split [1 2 3 4 5 6 3 7 8 9]     [after last as-delim 3]]	[[1 2 3 4 5 6 3] [7 8 9]]
+
+	; Paren tests
+	test [split [1 2 (3) 4 5 6 (3) 7 8 9] [as-delim (3)]]			[[1 2] [4 5 6] [7 8 9]]
+	test [split [1 2 (a) 4 5 6 (a) 7 8 9] [before as-delim (a)]]	[[1 2] [(a) 4 5 6] [(a) 7 8 9]]
+	test [split "aaabaaacaaabaaad" (charset "bcd")]		["aaa" "aaa" "aaa" "aaa" ""]
+	test [split "aaabaaacaaabaaad" [(charset "bcd")]]	["aaa" "aaa" "aaa" "aaa" ""]
 
 	; Multi-split tests
 			
