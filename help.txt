@@ -133,7 +133,7 @@ and it makes your intent clear, which is the ultimate goal.
 
 ===Types of Splitting
 
-<By Delimiter>(#SplitByDelimiter)
+<By Delimiter>(#Split By Delimiter)
 
 <At an Offset\/Index\/Position>(#Split at a Position)
 
@@ -145,7 +145,7 @@ and it makes your intent clear, which is the ultimate goal.
 
 <Up To N Times>(#Split Up To N Times)
 
-<By Test Predicate(s)>(#Split By Test Predicate(s)
+<By Test Predicate(s)>(#Split By Test Predicates)
 
 <Using Advanced Rules>(#Split Using Advanced Rules)
 
@@ -224,9 +224,9 @@ more than one "header" part but a trailing payload that may contain
 separators.
 
 
-===Split by Test Predicate(s)
+===Split by Test Predicates
 
-Partition data into groups based on a test.
+Partition data into groups based on one or more tests.
 
 *Data Analysis:* How many of a particular type of data occur, relative
 to others? What are the min\/max or average values for all the numeric
@@ -251,14 +251,12 @@ Think *parse+collect*.
 
 *F1:* Help
 *F5:* Split
-*Ctrl+Left:* Previous Task
-*Ctrl+Right:* Next Task
+*Ctrl+Left:* Previous Task XXX
+*Ctrl+Right:* Next Task XXX
+*F6:* Previous Task
+*F8:* Next Task
 
-
-===Navigating
-
-
-===Noting Bugs
+*Enter:* Split, if in Rule field
 
 
 ===FutureThought
