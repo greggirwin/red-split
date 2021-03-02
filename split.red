@@ -496,6 +496,10 @@ split-ctx: context [
 		if any [get-word? :delim  set-word? :delim] [
 			delim: compose [quote (delim)]
 		]
+		;!! ?? If we DO parens, it saves the user composing them, which is
+		;	   the more common case than using them as values, which can
+		;	   still then be done with AS-DELIM.
+		if paren? :delim [delim: do delim]
 		
 		; This is only here because /last isn't as easy to do with parse.
 		; Possible of course, just not as clean or obvious. Have to
@@ -694,7 +698,7 @@ split-ctx: context [
 		]
 		delimiter=: [
 			;'as-delim any-type! ("Treat as literal value, not position or rule")
-			'as-delim set =dlm [integer! | block! | word!] ( ;("Treat as literal value, not position, rule, or char! keyword")
+			'as-delim set =dlm [integer! | block! | word! | paren!] ( ;("Treat as literal value, not position, rule, or char! keyword")
 				=dlm: reduce ['quote =dlm]
 			)
 			| char-word= (=dlm: =char-word)
