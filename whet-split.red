@@ -17,9 +17,9 @@ comment {
 	practice rehearse train exercise drill work-out gym studio kata dojo
 	muscle-memory 
 	
-	load suite
-	if a session for the suite is in progress, use that
-	session data is updated, suites are not; they are templates for sessions
+	- load suite
+	- if a session for the suite is in progress, use that
+	- session data is updated, suites are not; they are templates for sessions
 	
 }
 
@@ -44,6 +44,8 @@ task-proto: #(
 	time:  none
 	tries: []	; be able to see what they actually tried
 	notes: none	; [input goal rule note]
+	rating: none
+	vote:  none
 )
 ;extend task <suite-task>
 
@@ -69,7 +71,7 @@ inputs: [
 	{"PascalCaseNameAndMoreToo"}
 	{"abc<br>de<br>fghi<br>jk"}
 	{{line 1;^/line 2;^/line 3;^/}}		; curly braces needed due to newlines
-	{{line_1:^/line_2:^/line_3:^/}}
+	{{^/line_1:^/line_2:^/line_3:^/}}
 	{{key-a=1^/key-b=2:^/key-c=3}}
 	{"PascalCaseName"}
 	{"camelCaseName"}
@@ -95,10 +97,15 @@ split-it: has [res] [
 	; etc.
 	if error? set/any 'err try [
 		txt-result/data: mold split load txt-input/text make-rule fld-rule/data
+		lbl-rule-err/visible?: no
+		;print mold make-rule fld-rule/data
 	][
 		print mold err
 		; TBD: format error for display
-		alert mold err
+		;alert ["I don't know what to make of " mold fld-rule/text]
+		;?? TBD Dynamic error message?
+		lbl-rule-err/text: "I don't understand that. Maybe try reduce/compose."
+		lbl-rule-err/visible?: yes
 	]
 	;txt-goal/text: {["a" "b" "c"]}
 	res: equal? txt-result/data txt-goal/data
@@ -117,6 +124,7 @@ next-task: does [
 	set-cur-task
 	;probe cur-task: extend task-proto first suite
 	txt-input/data: random/only inputs
+	;txt-input/text: mold random/only inputs
 ]
 prev-task: does [
 	cycle suite
@@ -165,38 +173,45 @@ save-results: does [
 	; TBD submit results
 	print 'saving	
 ]
+rate-task: func [val][cur-task/rating: val]
+vote: func [val][cur-task/vote: val]
 
 true-color:  (leaf  + 100) 
 false-color: (brick + 100) 
 
 view/options [
+	space 4x4
 	style lbl: text 200 font-size 12
 	style txt: text font-size 12
 	style field: field 400x30 font-size 12
-	style content: text 400x175 font-color navy font-size 11
+	style content: text 400x160 font-color navy font-size 11
+	style vote: button 40 top font-size 12
 	lbl "Your goal is to get this result:" ;return
 	;pad 210x0
-	txt-goal: content 400x175 "[ ... ^/^/^/^/^/^/^/^/ ... ]" return
+	txt-goal: content "[ ... ^/^/^/^/^/^/^/ ... ]" return
 	;txt-goal: content 400x175 {["a" "b" "c"]} return
 	
-	;lbl "Here is your input:" txt-input: content 400x50 {"a,b,c"} return
-	lbl "Here is your input:" txt-input: field 400x50 {"a,b,c"} return
+	;lbl "Here is your input:" txt-input: content 400x100 {"a,b,c"} return
+	lbl "Here is your input:" txt-input: field 400x100 {"a,b,c"} return
 	lbl "How do you want to split? :" fld-rule: field on-enter [split-it] 
 	button "Split (F5)" [split-it] return
+	pad 210x0 lbl-rule-err: txt 400 font-color red return
 	lbl "Here is your result:" ;return
 	;pad 20x0
-	txt-result: content "[ ... ^/^/^/^/^/^/^/^/ ... ]" 
+	txt-result: content "[ ... ^/^/^/^/^/^/^/ ... ]" 
 	success-marker: text 30x30 "" bold font-size 18 ; with [font: make font! [size: 18 style: 'bold]]
 	return
 	lbl "Question or Suggestion:" fld-bug-note: area font-size 12 400x75
 	;button "Note" [note-bug] return
 	return
+	lbl "Rate this task:" txt 35 "Easy" slider 50% 200 [rate-task face/data] txt 35 "Hard" 
+	pad 20x0 vote "👍" [vote 1] vote "👎" [vote -1] return
 	pad 400x20
 	button "Help (F1)" [show-help] 
 	button "Next Task (F6)" [next-task]
 	pad 35x0 
 	button "Save" [save-results]
-	
+	;return button "Halt" [halt]
 ][
 	text: "Hone your splitting skills"
 	selected: fld-rule
@@ -210,15 +225,16 @@ view/options [
 ;						#"^N" [make-note]
 						#"^S" [save-results]
 ;						#"^T" [next-task]
-						left  [prev-task]
-						right [next-task]
+;						left  [prev-task]
+;						right [next-task]
 					]
 				]
 				'else [
 					switch event/key [
 						F1    [show-help]
 						F5    [split-it]
-						F6    [next-task]
+						F6    [prev-task]
+						F8    [next-task]
 					]
 				]
 			]
