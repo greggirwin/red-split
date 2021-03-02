@@ -236,7 +236,7 @@ help: context [
 						;probe s/2/data
 						caret: offset-to-caret s/2 event/offset - s/1
 						parse s/2/data [some [
-							e: pair! 0.0.255 'underline 
+							e: pair! 0.0.255 opt integer! 'underline 
 							opt [if (all [caret >= e/1/1 caret <= (e/1/1 + e/1/2)])(
 								text: copy/part at s/2/text e/1/1 e/1/2
 								;probe links
@@ -247,6 +247,7 @@ help: context [
 											url! [browse lnk]
 											integer! [show-page page: lnk]
 											issue! [show-page page: index? find sections to-string lnk]
+											block! [show-page page: index? find sections form lnk]
 										]
 									]
 								]
