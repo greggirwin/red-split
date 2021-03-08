@@ -135,7 +135,7 @@ and it makes your intent clear, which is the ultimate goal.
 
 <By Delimiter>(#Split By Delimiter)
 
-<At an Offset\/Index\/Position>(#Split at a Position)
+<At an Offset/Index/Position>(#Split at a Position)
 
 <Into Equal Parts>(#Split Into Equal Parts)
 
@@ -165,20 +165,20 @@ results.
 
 What this model lacks is /any other/ useful feature, like splitting at
 only the first or last occurrence of the separator. Or /including/ the
-separator in the result. For example, you want to split at *:*, but
-keep it with the left part; or split at uppercase characters, but keep
-them with the right part. Rust adds some variants, with the result of 
-having 13 different `split\*` functions.
+separator in the result. For example, you want to split /after/ *:*, 
+keeping it with the left part; or split /before/ uppercase characters,
+keeping them with the right part. Rust adds some variants, with the
+result of having 13 different *split\** functions.
 
 Most telling, for Red, is that other langs only consider strings as
-the input and characters, or sometimes strings, as the separator. This
+the input and characters (sometimes strings), as the separator. This
 makes sense, but is <short-sighted>(#FutureThought) for Red.
 
 
-===Split at a Position
+===Split Once
 
-Split just once, giving two parts. The data is not marked by a 
-delimiting value, but the size of the either the first or last
+Split just once, giving two parts. The data may be marked by a 
+delimiting value, or by the size of the either the first or last
 part.
 
 ===Split Into Equal Parts
@@ -250,10 +250,15 @@ Think *parse+collect*.
 ===Menus and keys
 
 *F1:* Help
+
 *F5:* Split
+
 *Ctrl+Left:* Previous Task XXX
+
 *Ctrl+Right:* Next Task XXX
+
 *F6:* Previous Task
+
 *F8:* Next Task
 
 *Enter:* Split, if in Rule field
