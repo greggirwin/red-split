@@ -8,6 +8,7 @@ Red [
 
 #include %split.red
 #include %help.red
+;#include %whet-split-suite-1.red
         
 comment {
 	What about The Hatchet Challenge? How fast can you pass the split tests?
@@ -23,17 +24,28 @@ comment {
 	
 }
 
-cycle: function ['series [word!] /back][
+cycle: function ['series [word!] /prev][
 	ser: get series
-	either back [
-		ser: skip ser -1
-		if head? ser [ser: tail ser]
+	ser: either prev [
+		either head? back ser [back tail ser][skip ser -1]
 	][
-		ser: skip ser 1
-		if tail? ser [ser: head ser]
+		either tail? next ser [head ser][skip ser 1]
 	]
 	set series ser
 ]
+;closure: func [
+;    vars [block!] "Values to close over, in spec block format"
+;    spec [block!] "Function spec for closure func"
+;    body [block!] "Body of closure func; vars will be available"
+;][
+;    func spec bind body context vars
+;]
+;cycler: func [block [block!]][
+;	closure compose/only [block: (block)] [/reset] [
+;		if any [reset  tail? block] [block: head block]
+;		also  first block  block: next block
+;	]
+;]
 
 
 task-proto: #(
@@ -43,52 +55,67 @@ task-proto: #(
 	goal:  []  	; expected output, always a block
 	time:  none
 	tries: []	; be able to see what they actually tried
-	notes: none	; [input goal rule note]
+	notes: ""	; [input goal rule note]
 	rating: none
 	vote:  none
 )
 ;extend task <suite-task>
 
+cur-task: none
 set-cur-task: does [
-	cur-task: extend copy task-proto first suite
+	;cur-task: extend copy task-proto first suite
+	cur-task: first cur-session	; session cycles
 ]
 
 suite: #include %whet-split-suite-1.red
-set-cur-task
 
-help-text: {
-	Sharpen your skills.
-	Hone that code to a fine edge. 
-	Hone your splitting skills.
-}
+make-session: func [data [block!]][
+	collect [
+		foreach item data [
+			keep make copy/deep/types item string! copy/deep/types task-proto string!
+		]
+	]
+]
+save-session: func [dest data][
+	save dest data
+]
+;help-text: {
+;	Sharpen your skills.
+;	Hone that code to a fine edge. 
+;	Hone your splitting skills.
+;}
 
 ; compose [after every (string!)]"
 ; compose [after every (all-word!)]
 
-inputs: [
-	{"a,b,c"}
-	{"1234567812345678"}
-	{"PascalCaseNameAndMoreToo"}
-	{"abc<br>de<br>fghi<br>jk"}
-	{{line 1;^/line 2;^/line 3;^/}}		; curly braces needed due to newlines
-	{{^/line_1:^/line_2:^/line_3:^/}}
-	{{key-a=1^/key-b=2:^/key-c=3}}
-	{"PascalCaseName"}
-	{"camelCaseName"}
-	{"<br>abc<br>de<br><para><br>fghi<br>jk<br>"}	; [by <para> then <br>]
-	{"1.2.3-alpha.b+2045.RC3"}		; semver
-	{"PascalCaseName camelCaseName dash-marked-name under_marked_name"} ;compose/deep [by (space) then (charset [#"A" - #"Z" "-_"])]
-	{"YYYYMMDD/HHMMSS"}
-	{"Mon, 24 Nov 1997"}
-;{}
-	{[1 2 3 4 5 6]}
-	{[1 2 3 4 5 6 3 7 8 9]}
-	{[1 2 [3] 4 5 6 [3] 7 8 9]}
-	{[1 2.3 /a word "str" #iss x: :y]}
-	{[1 2.3 /a word "str" #iss x: :y <T>]}
-	{[1 2 3 space 4 5 6 space 7 8 9]} ; compose [by ['space] then (:even?)]
-	{[1 2.3 /mark word "str" /mark #iss x: :y]}
-]
+
+print mold cur-session: make-session suite
+probe set-cur-task
+
+;inputs: [
+;	{"a,b,c"}
+;	{"1234567812345678"}
+;	{"PascalCaseNameAndMoreToo"}
+;	{"abc<br>de<br>fghi<br>jk"}
+;	{{line 1;^/line 2;^/line 3;^/}}		; curly braces needed due to newlines
+;	{{^/line_1:^/line_2:^/line_3:^/}}
+;	{{key-a=1^/key-b=2:^/key-c=3}}
+;	{"PascalCaseName"}
+;	{"camelCaseName"}
+;	{"<br>abc<br>de<br><para><br>fghi<br>jk<br>"}	; [by <para> then <br>]
+;	{"1.2.3-alpha.b+2045.RC3"}		; semver
+;	{"PascalCaseName camelCaseName dash-marked-name under_marked_name"} ;compose/deep [by (space) then (charset [#"A" - #"Z" "-_"])]
+;	{"YYYYMMDD/HHMMSS"}
+;	{"Mon, 24 Nov 1997"}
+;;{}
+;	{[1 2 3 4 5 6]}
+;	{[1 2 3 4 5 6 3 7 8 9]}
+;	{[1 2 [3] 4 5 6 [3] 7 8 9]}
+;	{[1 2.3 /a word "str" #iss x: :y]}
+;	{[1 2.3 /a word "str" #iss x: :y <T>]}
+;	{[1 2 3 space 4 5 6 space 7 8 9]} ; compose [by ['space] then (:even?)]
+;	{[1 2.3 /mark word "str" /mark #iss x: :y]}
+;]
 split-it: has [res] [
 	; Need to figure out how best to handle the rule, because it could be
 	; comma
@@ -119,17 +146,36 @@ split-it: has [res] [
 	]
 	
 ]
+gather-UI-data: does [
+	;	if cur-task [
+;		cur-task/notes: fld-notes/text
+;	]
+	cur-task/notes: copy fld-notes/text
+
+]
+show-cur-task: does [
+	txt-ID/text: mold cur-task/id
+	txt-input/data: mold cur-task/input
+	txt-goal/data: mold cur-task/goal
+	fld-notes/text: cur-task/notes
+	clear fld-rule/text
+	clear txt-result/text
+	;clear fld-notes/text
+	success-marker/text: "" ;success-marker/visible?: no
+]
 next-task: does [
-	cycle suite
+	cycle cur-session ;suite
 	set-cur-task
 	;probe cur-task: extend task-proto first suite
-	txt-input/data: random/only inputs
+	;txt-input/data: random/only inputs
 	;txt-input/text: mold random/only inputs
+	show-cur-task
 ]
 prev-task: does [
-	cycle suite
+	cycle/prev cur-session ;suite
 	set-cur-task
-	txt-input/data: random/only inputs
+	;txt-input/data: random/only inputs
+	show-cur-task
 ]
 make-rule: function [
 	data  "Content from user input field"
@@ -165,16 +211,17 @@ make-rule: function [
 		]
 	]
 ]
-make-note: does [
-	; TBD
-	
-]
+;make-note: does [
+;	; TBD
+;	
+;]
 save-results: does [
 	; TBD submit results
 	print 'saving	
+	save-session %_session.red head cur-session	; TBD mark cur-task
 ]
 rate-task: func [val][cur-task/rating: val]
-vote: func [val][cur-task/vote: val]
+vote: func [val][print ['vote val] cur-task/vote: val]
 
 true-color:  (leaf  + 100) 
 false-color: (brick + 100) 
@@ -186,13 +233,14 @@ view/options [
 	style field: field 400x30 font-size 12
 	style content: text 400x160 font-color navy font-size 11
 	style vote: button 40 top font-size 12
+	lbl "Task ID:" txt-ID: txt "___" return
 	lbl "Your goal is to get this result:" ;return
 	;pad 210x0
 	txt-goal: content "[ ... ^/^/^/^/^/^/^/ ... ]" return
 	;txt-goal: content 400x175 {["a" "b" "c"]} return
 	
-	;lbl "Here is your input:" txt-input: content 400x100 {"a,b,c"} return
-	lbl "Here is your input:" txt-input: field 400x100 {"a,b,c"} return
+	lbl "Here is your input:" txt-input: content 400x100 return
+	;lbl "Here is your input:" txt-input: field 400x100 return
 	lbl "How do you want to split? :" fld-rule: field on-enter [split-it] 
 	button "Split (F5)" [split-it] return
 	pad 210x0 lbl-rule-err: txt 400 font-color red return
@@ -201,23 +249,24 @@ view/options [
 	txt-result: content "[ ... ^/^/^/^/^/^/^/ ... ]" 
 	success-marker: text 30x30 "" bold font-size 18 ; with [font: make font! [size: 18 style: 'bold]]
 	return
-	lbl "Question or Suggestion:" fld-bug-note: area font-size 12 400x75
-	;button "Note" [note-bug] return
+	lbl "Notes:" fld-notes: area font-size 12 400x75 ;on-change [cur-task/notes]
 	return
 	lbl "Rate this task:" txt 35 "Easy" slider 50% 200 [rate-task face/data] txt 35 "Hard" 
 	pad 20x0 vote "👍" [vote 1] vote "👎" [vote -1] return
 	pad 400x20
 	button "Help (F1)" [show-help] 
-	button "Next Task (F6)" [next-task]
+	button "Prev Task (F6)" [prev-task]
+	button "Next Task (F8)" [next-task]
 	pad 35x0 
 	button "Save" [save-results]
 	;return button "Halt" [halt]
+	do [show-cur-task]
 ][
 	text: "Hone your splitting skills"
 	selected: fld-rule
 	actors: make object! [
         on-key: function [face event] [
-			;print ['on-key event/key event/flags type? event/key]
+			;print ['on-key event/key mold event/flags type? event/key mold event/key]
 			case [
 				event/ctrl? [
 					switch event/key [
@@ -227,14 +276,30 @@ view/options [
 ;						#"^T" [next-task]
 ;						left  [prev-task]
 ;						right [next-task]
+						up    [vote +1]
+						down  [vote -1]
 					]
 				]
+;				find event/flags 'control [
+;					print ['control-flag mold event/key]
+;					switch event/key [
+;						F1    [show-help]
+;						F5    [split-it]
+;						F6    [prev-task]
+;						F8    [next-task]
+;;						up    [vote +1]
+;;						down  [vote -1]
+;					]
+;				]
 				'else [
+					;print mold event/key
 					switch event/key [
 						F1    [show-help]
 						F5    [split-it]
 						F6    [prev-task]
 						F8    [next-task]
+						#"+" [vote +1]
+						#"-" [vote -1]
 					]
 				]
 			]
@@ -267,3 +332,11 @@ view/options [
 ;		]
 	]
 ]
+
+;view/options [size 400x300][
+;	actors: make object! [
+;        on-key: function [face event] [
+;			print ['on-key event/key mold event/flags type? event/key mold event/key]
+;		]
+;	]
+;]
