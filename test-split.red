@@ -137,7 +137,7 @@ do [
 
 	;!! Seen as dialected delimiter in block if we don't require `once|every`
 	test [split "-a-a" ["a"]]    ["-" "-" ""]
-	test [split "-a-a'" ["a"]]    ["-" "-" "'"]
+	test [split "-aa-aa'a" ["aa"]]    ["-" "-" "'a"]
 
 	;-------------------------------------------------------------------------------
 	test [split "abc|de/fghi:jk" charset "|/:"]                     ["abc" "de" "fghi" "jk"]
