@@ -4,10 +4,11 @@ DiaGrammar [Options: [
     hovering: true 
     string-input: false 
     case-parsing: false 
-    live-edit?: true 
     live-parse?: true 
     iterate-times: 1 
     max-iterate: 5 
+    save-bookmarks?: true 
+    nav-history: ["position" "count" "split-test" "split-test+" "delimiter" "delim-modifier" "ordinal" "keyword"] 
     font-size: 11 
     selected-rule: "split-test+" 
     latest-inputs: [
@@ -17,13 +18,10 @@ DiaGrammar [Options: [
 ]]
 ; Red SPLIT function dialect
 
-multi-split: [
-	opt 'first 'by split ['then] opt 'by split
-]
+; For testing inputs in DiaGrammar
+split-test+: [some into split-test]
+split-test: ['split [word! | string! | block!] split]
 
-;temp: ['split string! ahead block! into [some integer!]]
-;temp: ['split string! split]
-;temp: [into [some integer!]]
 
 split: [
 	integer! ("Into parts of size N, last may be shorter")
@@ -48,6 +46,10 @@ split: [
 		]
 		opt count
 	]
+]
+
+multi-split: [
+	opt 'first 'by split ['then] opt 'by split
 ]
 
 keyword: [
@@ -83,16 +85,16 @@ delim-modifier: [
 ]
 ; First/Last are compatible with delimiters and positions.
 ; Nth is only compatible with delimiters.
-ordinal: [['first | 'last | Nth] ("Implies once")]
+ordinal: [
+	[
+		'first | 'last
+		; | Nth
+	] ("Implies once")
+]
 
 count: [opt ['up 'to] integer! 'times]
 
 ; No, this is not how I think we should do it. Just playing.
-Nth: [
-	ahead block! into [integer! ['st | 'nd | 'rd]]
-]
-
-; For testing inputs in DiaGrammar
-split-test: ['split [word! | string! | block!] split]
-split-test+: [some into split-test] ; for testing
-
+;Nth: [
+;	ahead block! into [integer! ['st | 'nd | 'rd]]
+;]
