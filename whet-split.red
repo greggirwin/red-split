@@ -15,8 +15,9 @@ comment {
 	Have a set of tests, try to solve each one in as short a time or fewest attempts.
 	Preset test suites can let people challenge for high score.
 	
-	practice rehearse train exercise drill work-out gym studio kata dojo
-	muscle-memory 
+	learn study practice rehearse train exercise drill (study is also a good noun)
+	work-out gym studio kata dojo muscle-memory 
+	praxis https://www.wordnik.com/words/praxis maybe 'practice then?
 	
 	- load suite
 	- if a session for the suite is in progress, use that
@@ -27,7 +28,7 @@ comment {
 cycle: function ['series [word!] /prev][
 	ser: get series
 	ser: either prev [
-		either head? back ser [back tail ser][skip ser -1]
+		either head? ser [back tail ser][skip ser -1]
 	][
 		either tail? next ser [head ser][skip ser 1]
 	]
@@ -48,17 +49,28 @@ cycle: function ['series [word!] /prev][
 ;]
 
 
-task-proto: #(
-	id:    none
+;task-proto: #(
+;	id:    none
+;	desc:  ""
+;	input: "" 	; string or block
+;	goal:  []  	; expected output, always a block
+;	time:  none
+;	tries: []	; be able to see what they actually tried
+;	notes: ""	; [input goal rule note]
+;	rating: none
+;	vote:  none
+;)
+task-proto: object [
+	id:    #[none]
 	desc:  ""
 	input: "" 	; string or block
 	goal:  []  	; expected output, always a block
-	time:  none
+	time:  #[none]
 	tries: []	; be able to see what they actually tried
 	notes: ""	; [input goal rule note]
-	rating: none
-	vote:  none
-)
+	rating: #[none]
+	vote:   #[none]
+]
 ;extend task <suite-task>
 
 cur-task: none
@@ -72,7 +84,8 @@ suite: #include %whet-split-suite-1.red
 make-session: func [data [block!]][
 	collect [
 		foreach item data [
-			keep make copy/deep/types item string! copy/deep/types task-proto string!
+			;keep make copy/deep/types item string! copy/deep/types task-proto string!
+			keep/only make copy/deep task-proto item
 		]
 	]
 ]
@@ -88,9 +101,12 @@ save-session: func [dest data][
 ; compose [after every (string!)]"
 ; compose [after every (all-word!)]
 
-
-print mold cur-session: make-session suite
-probe set-cur-task
+cur-session: either exists? %_session.red [
+	reduce load %_session.red
+][
+	make-session suite
+]
+set-cur-task
 
 ;inputs: [
 ;	{"a,b,c"}
@@ -136,6 +152,8 @@ split-it: has [res] [
 	]
 	;txt-goal/text: {["a" "b" "c"]}
 	res: equal? txt-result/data txt-goal/data
+	;TBD Disallow moving to next task until current one is done?
+	;TBD Show count of completed tasks?	
 	;res: true
 	either res [
 		success-marker/text: "✔"
@@ -170,13 +188,23 @@ next-task: does [
 	;txt-input/data: random/only inputs
 	;txt-input/text: mold random/only inputs
 	show-cur-task
+	;TBD ? skip over complete tasks so user can move on if they're stuck?
 ]
 prev-task: does [
 	cycle/prev cur-session ;suite
 	set-cur-task
 	;txt-input/data: random/only inputs
 	show-cur-task
+	start-task-timer
 ]
+
+
+start-task-timer: does []
+pause-task-timer: does []
+stop-task-timer:  does []
+store-task-timer: does []
+
+
 make-rule: function [
 	data  "Content from user input field"
 	/local fn arg
