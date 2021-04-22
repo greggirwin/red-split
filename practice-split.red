@@ -1,14 +1,26 @@
 Red [
-	title:  "Whet-Split"
+	title:  "Practice-Split"
 	author: "Gregg Irwin"
-	file:   %whet-split.red
+	file:   %practice-split.red
 	icon:   %split-lab.ico
 	needs:  view
 ]
 
+comment {
+	session		; a pass on a suite. A suite is a test; a session is taking the test.
+		When you start a session, a suite is loaded.
+		When all tasks are done (goal met), the session is complete.
+		You can stop before completing a session; but can't continue where you left off.
+	suite		; a set of tasks
+		When you load a suite, full tasks are make from template skeletons.
+	task		; a split input, goal, user notes, and telemetry
+		While you're on a task, its timer is running.
+}
+
 #include %split.red
 #include %help.red
-;#include %whet-split-suite-1.red
+;#include %practice-split-suite-1.red
+#include to-red-file "C:\dev\greggirwin\red-formatting\format-date-time.red"
         
 comment {
 	What about The Hatchet Challenge? How fast can you pass the split tests?
@@ -63,11 +75,14 @@ cycle: function ['series [word!] /prev][
 task-proto: object [
 	id:    #[none]
 	desc:  ""
-	input: "" 	; string or block
-	goal:  []  	; expected output, always a block
-	time:  #[none]
-	tries: []	; be able to see what they actually tried
-	notes: ""	; [input goal rule note]
+	input: "" 		; string or block
+	goal:  []  		; expected output, always a block
+	time:  #[none]	; log start/end times for each "visit" to a task?
+	ticks: 0		; 1 tick = 1 second
+	done?: no		; set to yes when result = goal
+	tries: []		; be able to see what they actually tried
+					; sub-blocks of [time rule]
+	notes: ""		; [input goal rule note]
 	rating: #[none]
 	vote:   #[none]
 ]
@@ -79,7 +94,7 @@ set-cur-task: does [
 	cur-task: first cur-session	; session cycles
 ]
 
-suite: #include %whet-split-suite-1.red
+suite: #include %practice-split-suite-1.red
 
 make-session: func [data [block!]][
 	collect [
@@ -156,13 +171,15 @@ split-it: has [res] [
 	;TBD Show count of completed tasks?	
 	;res: true
 	either res [
+		cur-task/done?: yes
 		success-marker/text: "✔"
 		success-marker/font/color: true-color
 	][
+		cur-task/done?: no
 		success-marker/text: "✘"
 		success-marker/font/color: false-color
 	]
-	
+	;res
 ]
 gather-UI-data: does [
 	;	if cur-task [
@@ -173,24 +190,30 @@ gather-UI-data: does [
 ]
 show-cur-task: does [
 	txt-ID/text: mold cur-task/id
+	task-time/text: form to time! cur-task/ticks
 	txt-input/data: mold cur-task/input
 	txt-goal/data: mold cur-task/goal
 	fld-notes/text: cur-task/notes
 	clear fld-rule/text
+	lbl-rule-err/visible?: no
 	clear txt-result/text
 	;clear fld-notes/text
 	success-marker/text: "" ;success-marker/visible?: no
 ]
 next-task: does [
+	save-results
 	cycle cur-session ;suite
 	set-cur-task
 	;probe cur-task: extend task-proto first suite
 	;txt-input/data: random/only inputs
 	;txt-input/text: mold random/only inputs
 	show-cur-task
+	start-task-timer
 	;TBD ? skip over complete tasks so user can move on if they're stuck?
+	;print mold cur-task
 ]
 prev-task: does [
+	save-results
 	cycle/prev cur-session ;suite
 	set-cur-task
 	;txt-input/data: random/only inputs
@@ -199,10 +222,30 @@ prev-task: does [
 ]
 
 
-start-task-timer: does []
-pause-task-timer: does []
-stop-task-timer:  does []
-store-task-timer: does []
+;-------------------------------------------------------------------------------
+
+session-timer: object [
+	start: end: none
+	elapsed: does [difference end start]
+]
+
+;start-session: does [
+;	start-session-timer
+;]
+
+start-session-timer: does [session-timer/start: now]
+pause-session-timer: does []
+ stop-session-timer: does [session-timer/end: now]
+store-session-timer: does []
+
+; If we have a rate/timer ticking, we can just increment the task timer
+; for the current task on every tick as long as the task isn't done.
+;start-task-timer: does []
+;pause-task-timer: does []
+; stop-task-timer: does []
+;store-task-timer: does []
+
+;-------------------------------------------------------------------------------
 
 
 make-rule: function [
@@ -243,13 +286,48 @@ make-rule: function [
 ;	; TBD
 ;	
 ;]
+
+session-file: none
+start-session: does [
+	session-file: rejoin [
+		%sessions/practice-split-
+		format-date-time now "yyyy-mm-dd-hhh-mm-ss-"
+		%.red
+	]
+]
+
 save-results: does [
 	; TBD submit results
-	print 'saving	
-	save-session %_session.red head cur-session	; TBD mark cur-task
+	;print 'saving	
+	;save-session %sessions/_session.red head cur-session	; TBD mark cur-task
+	save-session session-file head cur-session	; TBD mark cur-task
 ]
+
 rate-task: func [val][cur-task/rating: val]
-vote: func [val][print ['vote val] cur-task/vote: val]
+
+vote: func [val][
+	;print ['vote val]
+	cur-task/vote: val
+	either val = 1 [
+		if f-downvote/data [f-downvote/data: off]
+	][
+		if f-upvote/data [f-upvote/data: off]
+	]
+]
+
+tick: does [
+	;print ['tick now/precise]
+	if not cur-task/done? [
+		cur-task/ticks: cur-task/ticks + 1
+	]
+	task-time/text: form to time! cur-task/ticks
+]
+
+;-------------------------------------------------------------------------------
+
+start-session
+
+;-------------------------------------------------------------------------------
 
 true-color:  (leaf  + 100) 
 false-color: (brick + 100) 
@@ -259,9 +337,13 @@ view/options [
 	style lbl: text 200 font-size 12
 	style txt: text font-size 12
 	style field: field 400x30 font-size 12
-	style content: text 400x160 font-color navy font-size 11
-	style vote: button 40 top font-size 12
-	lbl "Task ID:" txt-ID: txt "___" return
+	style content: text 400x160 font-color navy font-size 12
+	style vote: toggle 50 left top font-size 12
+	style timer: base 0x0 rate 0:0:1 
+	
+	lbl "Task ID:" txt-ID: txt 350 "___"
+	task-time: timer 50x20 glass navy on-time [tick]
+	button "Start" [start-suite] return
 	lbl "Your goal is to get this result:" ;return
 	;pad 210x0
 	txt-goal: content "[ ... ^/^/^/^/^/^/^/ ... ]" return
@@ -277,11 +359,12 @@ view/options [
 	txt-result: content "[ ... ^/^/^/^/^/^/^/ ... ]" 
 	success-marker: text 30x30 "" bold font-size 18 ; with [font: make font! [size: 18 style: 'bold]]
 	return
+	
 	lbl "Notes:" fld-notes: area font-size 12 400x75 ;on-change [cur-task/notes]
 	return
-	lbl "Rate this task:" txt 35 "Easy" slider 50% 200 [rate-task face/data] txt 35 "Hard" 
-	pad 20x0 vote "👍" [vote 1] vote "👎" [vote -1] return
-	pad 400x20
+	lbl "Rate this task:" txt 35 "Easy" slider 50% 190 [rate-task face/data] txt 35 "Hard" 
+	pad 20x0 f-upvote: vote "👍" [vote 1] f-downvote: vote "👎" [vote -1] return
+	pad 300x20
 	button "Help (F1)" [show-help] 
 	button "Prev Task (F6)" [prev-task]
 	button "Next Task (F8)" [next-task]
@@ -289,6 +372,7 @@ view/options [
 	button "Save" [save-results]
 	;return button "Halt" [halt]
 	do [show-cur-task]
+	button "Halt" [print "" halt]
 ][
 	text: "Hone your splitting skills"
 	selected: fld-rule
@@ -306,6 +390,8 @@ view/options [
 ;						right [next-task]
 						up    [vote +1]
 						down  [vote -1]
+;						#"+" [vote +1]
+;						#"-" [vote -1]
 					]
 				]
 ;				find event/flags 'control [
@@ -326,8 +412,8 @@ view/options [
 						F5    [split-it]
 						F6    [prev-task]
 						F8    [next-task]
-						#"+" [vote +1]
-						#"-" [vote -1]
+						page-up    [prev-task]
+						page-down  [next-task]
 					]
 				]
 			]

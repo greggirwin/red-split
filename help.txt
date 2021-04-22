@@ -1,10 +1,10 @@
 Red []
 
-{Whet-Split: Hone Your Skill and Stimulate Your Appetite
+{Practice-Split: Hone Your Skill and Stimulate Your Appetite
 
 ===Introduction: Part 1
 
-This app in an experiment. Instructions are intentionally vague at
+This app is an experiment. Instructions are intentionally vague at
 times, to see what you try, naturally, without looking at a detailed
 spec. Why? Because people tend to ignore documentation and do just
 that, try things until they get it right. That does *not* mean we'll
@@ -61,7 +61,8 @@ to "learn programming". A CS degree? Coding bootcamp? Disciplined self-
 training and <Coding Katas>(http://codekata.com/)? Many agree that 
 software development is an art and craft as much as it is a science. You
 learn best by doing, starting with simple exercises, building skills,
-and being able to verify your results and understanding. 
+and being able to verify your results and understanding. It's called
+practice.
 
 <Live Coding>(https://en.wikipedia.org/wiki/Live_coding) and REPLs play a
 prominent role here. But just as dialects and DSLs are focused versions of
@@ -85,7 +86,7 @@ more constrained, domain specific way.
 
 *Part:* A piece, chunk, segment, slice, or region of a Red series.
 
-*Position:* An offset or index in a Red series.
+*Position:* An offset or index in a Red series. Indexes start at 1, offsets start at 0.
 
 *Separator:* A value specifying the boundary between separate, independent regions.
 
@@ -119,7 +120,7 @@ OK, you win, here are some hints when using a dialected block as your
 delimiting rule. Note that *first* is listed twice, but only to show
 that its context matters.
 
-    every once into as-delim
+    every once into parts as-delim
     first last
     at before after
     times
@@ -127,7 +128,7 @@ that its context matters.
 
 What happens if your rule isn't recognized as a *split* dialect input?
 It's treated as a *parse* rule. Given that, does *split* still have
-value? You bet it does, just as *collect* hides details, so does split,
+value? You bet it does, just as *collect* hides details, so does *split*,
 and it makes your intent clear, which is the ultimate goal.
 
 
@@ -183,6 +184,8 @@ part.
 
 ===Split Into Equal Parts
 
+Use cases:
+
 *Splitting a large file:* Each part should be no more than N bytes or
 may be a dataset where each record is a fixed size. Of course this use
 case has limits, and a stream based approach, reading and writing each
@@ -194,6 +197,8 @@ for error handling and user interactions. This is especially true when
 cumulative errors or resource constraints come into play.
 
 ===Split Into N Parts
+
+Use cases:
 
 *Distributing work:* You have N workers and want to give each a part of
 the data to work on.
@@ -233,7 +238,7 @@ to others? What are the min\/max or average values for all the numeric
 items (first you have to find them)?
 
 *Specialize Processing:* Break data up into groups of small and large
-values, so you can send each to a specific handler.
+values, or by type, so you can send each to a specific handler.
 
 ===Split Using Advanced Rules
 
@@ -242,9 +247,29 @@ Think *parse+collect*.
 
 ===UI: Goal, Input, Rule, Output
 
+There are three parts to the UI. At the top is your goal and the input
+for the task. Below that is a field where you write your *split* rule.
+When you press *Enter\/F5* or click the Split button, the input is split
+using your rule and the result is displayed below the field. You also
+get an indicator showing whether you matched the goal. At the bottom
+you can write notes, rate, and Like the task, to help us learn what
+things look like to users. Once you get a green light, move on to the
+next task.
+
+Because you only have a field to work with, it may take a few tries
+to understand that it's loading your rule, and doing some special
+handling if you use *compose* or *reduce*. We'll improve this in
+future versions I'm sure.
+
+IMPORTANT NOTE: Do /not/ type "split" or "input" in the rule field.
+Only the rule itself. e.g. if you want to use a comma as the delimiting
+rule, just type *#","* or *comma*.
+
+Save your work. We'll automate this in the future.
 
 
 ===Submitting Your Results
+
 
 
 ===Menus and keys
@@ -253,13 +278,13 @@ Think *parse+collect*.
 
 *F5:* Split
 
-*Ctrl+Left:* Previous Task XXX
+*Ctrl+Up:* Like
 
-*Ctrl+Right:* Next Task XXX
+*Ctrl+Down:* Don't Like
 
-*F6:* Previous Task
+*F6 or PgUp:* Previous Task
 
-*F8:* Next Task
+*F8 or PgDn:* Next Task
 
 *Enter:* Split, if in Rule field
 
@@ -283,7 +308,7 @@ or key-value structures.
 
 ===About
 
-Whet-Split is an experimental tool for the evaluation of the *split*
+Practice-Split is an experimental tool for the evaluation of the *split*
 function design and more general training tools for the
 <Red Language>(https://www.red-lang.org/).
 

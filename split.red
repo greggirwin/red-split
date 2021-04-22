@@ -100,7 +100,7 @@ partition: function [   ; GROUP ?
 	; of callers will have to use `reduce` themselves.
 	tests: either block? :tests [attempt [reduce tests]][blockify :tests]
 	;tests: attempt [reduce compose [(tests)]]	; blockify single func args
-	; No arity or type checking for given predicate funcs.
+	; No arity or type checking for given predicate funcs yet.
 	if not parse tests [some any-function!] [
 		cause-error 'Script 'invalid-arg [tests]
 	]
@@ -167,9 +167,9 @@ split-into-N-parts: function [
 	count: parts - 1
 	part-size: to integer! round/down divide length? series parts
 	if zero? part-size [part-size: 1]
-	;!! split-into-fixed-parts may return an extra part due to rounding.
+	;!! split-fixed-parts may return an extra part due to rounding.
 	;	so we can't just drop it in here.
-	;res: split-into-fixed-parts series part-size
+	;res: split-fixed-parts series part-size
 	res: collect/into [
 		parse series [
 			count [copy p part-size skip (keep/only p)]
@@ -212,7 +212,7 @@ split-into-N-parts: function [
 ;]
 
 
-split-into-fixed-parts: function [
+split-fixed-parts: function [
 	"If the series can't be evenly split, the last value will be shorter"
 	series [series!]  "The series to split"
 	size   [integer!] "Size of each part"
@@ -221,7 +221,7 @@ split-into-fixed-parts: function [
 	parse series [collect [any [keep copy series 1 size skip]]]
 ]
 ; preallocate
-;split-into-fixed-parts: function [
+;split-fixed-parts: function [
 ;	"If the series can't be evenly split, the last value will be shorter"
 ;	series [series!]  "The series to split"
 ;	size   [integer!] "Size of each part"
@@ -232,7 +232,7 @@ split-into-fixed-parts: function [
 ;	res
 ;]
 ;@Toomasv
-;split-into-fixed-parts: function [
+;split-fixed-parts: function [
 ;	"If the series can't be evenly split, the last value will be shorter"
 ;	series [series!]  "The series to split"
 ;	size   [integer!] "Size of each part"
@@ -248,6 +248,9 @@ split-into-fixed-parts: function [
 ;;	] make block! div
 ;]
 
+; TBD should the sizes block support a 'skip keyword instead of using
+; negative integer values? That means giving up map-each, but is more
+; self-documenting and only a little more verbose.
 split-var-parts: function [
 	"Split a series into variable size pieces"
 	series [series!] "The series to split"
@@ -307,6 +310,7 @@ split-var-parts: function [
 ; part makes sense, with 0 meaning an empty part. Including "relative" or
 ; split-at-skip for naming isn't great either, because /skip's meaning in
 ; other funcs is then conflated over splitting into many parts.
+; > Indexes start at 1, offsets start at 0
 split-at-index: function [
 	"Split the series at the given index (think SKIP not AT); returns the two parts."
 	series [series!]
@@ -353,7 +357,7 @@ split-once: function [
 		]
 	][
 		; A big question is whether to use find/only or make it a refinement. 
-		; Users can double block if needed.
+		; Users can double block if needed. e.g. [[a b c]] = /only [a b c]
 		dbg 'split-once-at-value
 		if all [
 			string? series
@@ -390,7 +394,7 @@ split-once: function [
 		;p-1: do reduce/into [fn series delim] clear []
 		
 		; From the above case block, we can see that the exceptional cases are
-		; when no refinement, or only /last are used. i.e. simple splitting.
+		; when no refinement, or only /last is used. i.e. simple splitting.
 		;print ['drop drop-len 'p-1 mold p-1 'p-2 mold p-2]
 		reduce either p-1 [
 			;p-2: either any [before after] [p-1][skip p-1 drop-len]
@@ -600,7 +604,7 @@ split-ctx: context [
 			
 			; Single delim, just in a block rather than as a direct arg
 			; Into N parts
-			| 'into set =num integer! opt [['parts | 'pieces | 'chunks]] (
+			| 'into set =num integer! opt 'parts (  ; [['parts | 'pieces | 'chunks]]
 				dbg 'split-into-N-parts
 				res: split-into-N-parts series =num
 			)
@@ -733,9 +737,14 @@ split-ctx: context [
 				res: split-delimited series dlm
 			]
 			integer? :dlm [
-				;?? Should this split-at-index or split-into-fixed-parts?
-				dbg "integer; split-into-fixed-parts, split into chunks of its size"
-				res: split-into-fixed-parts series dlm
+				;?? Should this split-at-index or split-fixed-parts? The reasoning
+				;	for split-fixed-parts is that it's closer to splitting at every
+				;	delimiter when a value is used as the lone arg to split, which
+				;	also maps well to splitting flat blocks into fixed size records.
+				dbg "integer; split-fixed-parts, split into chunks of its size"
+				res: split-fixed-parts series dlm
+				;dbg "integer; split-at-index"
+				;res: split-at-index series dlm
 				;if size < 1 [cause-error 'Script 'invalid-arg size]
 				;rule: [collect [any [keep copy series 1 size skip]]]
 			]

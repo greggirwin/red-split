@@ -4,6 +4,7 @@ DiaGrammar [Options: [
     hovering: true 
     string-input: false 
     case-parsing: false 
+    live-edit?: true 
     live-parse?: true 
     iterate-times: 1 
     max-iterate: 5 
@@ -25,6 +26,7 @@ split-test: ['split [word! | string! | block!] split]
 
 split: [
 	integer! ("Into parts of size N, last may be shorter")
+	;integer! ("Split the series at the given index (think SKIP not AT); returns the two parts.")
 	;| 'into integer! ("Into parts of size N, last may be shorter")
 	;| into [some integer!] ("into parts at relative offsets")
 	| delimiter ("At every delimiter")
@@ -53,7 +55,8 @@ multi-split: [
 ]
 
 keyword: [
-	'every | 'once | 'into | 'as-delim
+	'every | 'once | 'as-delim
+	| 'into | 'parts
 	| 'first | 'next | 'then | 'by ("first/next/then/by go with multi-split")
 	| 'times ("Goes with count")
 	| ordinal
