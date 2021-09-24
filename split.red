@@ -118,7 +118,7 @@ partition: function [   ; GROUP ?
 ;		append/only result copy []
 ;	]
 	; Loop over the series, trying each value against each predicate.
-	; As soon as a value matches one, move to the next value. That is
+	; As soon as a value matches one, move to the next value. That is,
 	; values can't appear in more than one predicate result. You get
 	; each value back exactly once, just redistributed.
 	foreach value series [
@@ -157,7 +157,7 @@ has?: func [series value][to logic! find/only series value]
 ;-------------------------------------------------------------------------------
 
 split-into-N-parts: function [
-	"If the series can't be evenly split, the last value will be longer"
+	"If the series can't be split evenly, the last value will be longer"
 	series [series!]
 	parts [integer!]
 	/local p
@@ -165,7 +165,7 @@ split-into-N-parts: function [
 	if parts < 1 [cause-error 'Script 'invalid-arg parts]
 	if parts = 1 [return copy series]
 	count: parts - 1
-	part-size: to integer! round/down divide length? series parts
+	part-size: to integer! round/down divide length? series parts  ; don't need round/down, except as a doc.
 	if zero? part-size [part-size: 1]
 	;!! split-fixed-parts may return an extra part due to rounding.
 	;	so we can't just drop it in here.
@@ -250,7 +250,9 @@ split-fixed-parts: function [
 
 ; TBD should the sizes block support a 'skip keyword instead of using
 ; negative integer values? That means giving up map-each, but is more
-; self-documenting and only a little more verbose.
+; self-documenting and only a little more verbose. The key being that
+; it's a little more code for us, and a little more for the user, in
+; return for clarity. Clarity is almost always worth it.
 split-var-parts: function [
 	"Split a series into variable size pieces"
 	series [series!] "The series to split"

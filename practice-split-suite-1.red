@@ -14,7 +14,7 @@ Red []
 ;	;	notes: none	; [input goal rule note]
 ;	]
 	[
-	    id: #1
+	    id: #01
 		input: "a,b,c"
 		goal:  ["a" "b" "c"]
 	]
@@ -24,41 +24,41 @@ Red []
 ;		goal:  ["a" "b" "c"]
 ;	]
 	[
-	    id: #2
+	    id: #02
 	    input: "abc,de,fghi,jk"
 	    goal: ["abc" "de" "fghi" "jk"]
 	]
 	[
-	    id: #3
+	    id: #03
 	    input: "abc<br>de<br>fghi<br>jk"
 	    goal: ["abc" "de" "fghi" "jk"]
 	]
 	[
-	    id: #4
+	    id: #04
 	    input: "1.2,3."
 	    goal: ["1" "2" "3" ""]
 	]
 	[
-	    id: #5
+	    id: #05
 	    input: "-aa-aa'a"
 	    goal: ["-" "-" "'a"]
 	]
 	[
-	    id: #6
+	    id: #06
 	    input: "abc|de/fghi:jk"
 	    goal: ["abc" "de" "fghi" "jk"]
 	]
 ;	[
-;	    id: #7
+;	    id: #07
 ;	    input: "{key-a=1^/key-b=2:^/key-c=3}"
 ;	]
 	[
-	    id: #8
+	    id: #08
 	    input: "PascalCaseName"
 	    goal: ["Pascal" "Case" "Name"]
 	]
 	[
-	    id: #9
+	    id: #09
 	    input: "camelCaseName"
 	    goal: ["camel" "Case" "Name"]
 	]
@@ -108,6 +108,7 @@ Red []
 	    id: #19
 	    input: [1 2 3 4 5 6]
 	    goal: [[1 2] [3] [4 5 6]]
+	    hint: "as-delim"
 	]
 	
 ;	[

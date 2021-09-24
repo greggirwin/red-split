@@ -10,9 +10,9 @@ comment {
 	session		; a pass on a suite. A suite is a test; a session is taking the test.
 		When you start a session, a suite is loaded.
 		When all tasks are done (goal met), the session is complete.
-		You can stop before completing a session; but can't continue where you left off.
+		You can stop before completing a session; but can't continue where you left off. ???
 	suite		; a set of tasks
-		When you load a suite, full tasks are make from template skeletons.
+		When you load a suite, full tasks are made from template skeletons.
 	task		; a split input, goal, user notes, and telemetry
 		While you're on a task, its timer is running.
 }
@@ -20,21 +20,26 @@ comment {
 #include %split.red
 #include %help.red
 ;#include %practice-split-suite-1.red
-#include to-red-file "C:\dev\greggirwin\red-formatting\format-date-time.red"
+#include %../red-formatting/format-date-time.red
         
 comment {
-	What about The Hatchet Challenge? How fast can you pass the split tests?
 	Have a set of tests, try to solve each one in as short a time or fewest attempts.
 	Preset test suites can let people challenge for high score.
 	
 	learn study practice rehearse train exercise drill (study is also a good noun)
 	work-out gym studio kata dojo muscle-memory 
+	
 	praxis https://www.wordnik.com/words/praxis maybe 'practice then?
+	[Medieval Latin prāxis, from Greek, from prāssein, prāg-, to do.]
+	From Ancient Greek πρᾶξις (praksis, "action, activity, practice")
 	
 	- load suite
 	- if a session for the suite is in progress, use that
 	- session data is updated, suites are not; they are templates for sessions
 	
+		
+	- split cheat sheet
+	- Be able to save split rules that apply to known data formats?
 }
 
 cycle: function ['series [word!] /prev][
@@ -61,6 +66,10 @@ cycle: function ['series [word!] /prev][
 ;]
 
 
+;-------------------------------------------------------------------------------
+
+; Maps and objects behave differently with respect to copying.
+; Open question for Nenad, 
 ;task-proto: #(
 ;	id:    none
 ;	desc:  ""
@@ -77,14 +86,16 @@ task-proto: object [
 	desc:  ""
 	input: "" 		; string or block
 	goal:  []  		; expected output, always a block
+	hint:  ""		; clues to keyword use, etc., that may apply
 	time:  #[none]	; log start/end times for each "visit" to a task?
-	ticks: 0		; 1 tick = 1 second
+	ticks: 0		; 1 tick = 1 second; how long has this task taken so far?
+	unticks: 0		; ticks while paused ???
 	done?: no		; set to yes when result = goal
 	tries: []		; be able to see what they actually tried
 					; sub-blocks of [time rule]
 	notes: ""		; [input goal rule note]
-	rating: #[none]
-	vote:   #[none]
+	rating: #[none] ; easy to hard
+	vote:   #[none]	; like/dislike
 ]
 ;extend task <suite-task>
 
@@ -154,6 +165,7 @@ split-it: has [res] [
 	; before x    which has to be [[before x]] if we DO it.
 	; etc.
 	if error? set/any 'err try [
+		append cur-task/tries [reduce now/precise form fld-rule/data]
 		txt-result/data: mold split load txt-input/text make-rule fld-rule/data
 		lbl-rule-err/visible?: no
 		;print mold make-rule fld-rule/data
@@ -179,26 +191,40 @@ split-it: has [res] [
 		success-marker/text: "✘"
 		success-marker/font/color: false-color
 	]
-	;res
+	show-task-stats
+	res					; return result of split test
 ]
 gather-UI-data: does [
-	;	if cur-task [
-;		cur-task/notes: fld-notes/text
-;	]
+	; Splitting action collects much of the data.
 	cur-task/notes: copy fld-notes/text
-
+	; Votes, rating, and ticks trigger updates directly, no need to gather
 ]
-show-cur-task: does [
+show-cur-task: does [		; scatter UI data
+	fld-rule/enabled?: yes
+	
 	txt-ID/text: mold cur-task/id
 	task-time/text: form to time! cur-task/ticks
 	txt-input/data: mold cur-task/input
 	txt-goal/data: mold cur-task/goal
 	fld-notes/text: cur-task/notes
 	clear fld-rule/text
+	;TBD If the task is done, and we've kept the matching rule (last tries),
+	; show that and disable fld-rule so they know they're done with this one.
+	; Tricky bit. If we disable the field, it won't see F6/F8 to nav tasks.
+	; And if it has focus, it eats those keys so nobody else sees them either.
+	either cur-task/done? [
+		fld-rule/text: form last cur-task/tries
+		fld-rule/enabled?: no
+		success-marker/text: "✔"
+	][
+		success-marker/text: ""
+	]
+	fld-rule/options/hint: any [cur-task/hint ""]
+
 	lbl-rule-err/visible?: no
 	clear txt-result/text
 	;clear fld-notes/text
-	success-marker/text: "" ;success-marker/visible?: no
+	;success-marker/text: "" ;success-marker/visible?: no
 ]
 next-task: does [
 	save-results
@@ -221,6 +247,27 @@ prev-task: does [
 	start-task-timer
 ]
 
+;-------------------------------------------------------------------------------
+
+task-stats: func [session /local task-grps] [
+	; Hmmm, cur-session moves its head pointer through the block
+	; of tasks as it goes, so we need to use HEAD. Not great.
+	task-grps: partition head session func [task][task/done?]
+	object [
+		tasks: length? session
+		done:  length? task-grps/1
+		not-done: length? task-grps/2
+	]	
+]
+all-tasks-done?: func [session] [
+	foreach task session [
+		if not task/done? [return false]
+	]
+]
+show-task-stats: has [stats] [
+	stats: task-stats cur-session
+	lbl-stats/text: rejoin [stats/done " down, " stats/not-done " to go"]
+]
 
 ;-------------------------------------------------------------------------------
 
@@ -233,6 +280,9 @@ session-timer: object [
 ;	start-session-timer
 ;]
 
+; Do we need a session timer? It could tell us if people do better late
+; at night, or if they run a session multiple times, breaking it up
+; into chunks.
 start-session-timer: does [session-timer/start: now]
 pause-session-timer: does []
  stop-session-timer: does [session-timer/end: now]
@@ -240,10 +290,10 @@ store-session-timer: does []
 
 ; If we have a rate/timer ticking, we can just increment the task timer
 ; for the current task on every tick as long as the task isn't done.
-;start-task-timer: does []
-;pause-task-timer: does []
-; stop-task-timer: does []
-;store-task-timer: does []
+start-task-timer: does []
+pause-task-timer: does []
+ stop-task-timer: does []
+store-task-timer: does []
 
 ;-------------------------------------------------------------------------------
 
@@ -286,6 +336,21 @@ make-rule: function [
 ;	; TBD
 ;	
 ;]
+
+
+open-session-file: does [
+	if session-file: request-file/file %sessions/ [
+		;if session open [save-results]
+		cur-session: either exists? session-file [
+			reduce load session-file
+		][
+			make-session suite
+		]
+		set-cur-task
+		show-task-stats
+	]
+]
+
 
 session-file: none
 start-session: does [
@@ -351,7 +416,7 @@ view/options [
 	
 	lbl "Here is your input:" txt-input: content 400x100 return
 	;lbl "Here is your input:" txt-input: field 400x100 return
-	lbl "How do you want to split? :" fld-rule: field on-enter [split-it] 
+	lbl "How do you want to split? :" fld-rule: field on-enter [split-it]  hint ""
 	button "Split (F5)" [split-it] return
 	pad 210x0 lbl-rule-err: txt 400 font-color red return
 	lbl "Here is your result:" ;return
@@ -364,17 +429,19 @@ view/options [
 	return
 	lbl "Rate this task:" txt 35 "Easy" slider 50% 190 [rate-task face/data] txt 35 "Hard" 
 	pad 20x0 f-upvote: vote "👍" [vote 1] f-downvote: vote "👎" [vote -1] return
-	pad 300x20
+	;pad 300x20
+	lbl-stats: lbl 300 font-color gray "Ready? Steady. Go!"
 	button "Help (F1)" [show-help] 
 	button "Prev Task (F6)" [prev-task]
 	button "Next Task (F8)" [next-task]
 	pad 35x0 
 	button "Save" [save-results]
 	;return button "Halt" [halt]
+	button "Open" [open-session-file]
 	do [show-cur-task]
 	button "Halt" [print "" halt]
 ][
-	text: "Hone your splitting skills"
+	text: "Practice Split"
 	selected: fld-rule
 	actors: make object! [
         on-key: function [face event] [

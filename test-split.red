@@ -159,6 +159,9 @@ do [
 	test [split [1 2.3 /a word "str" #iss x: :y] :any-word?]	[[word x: :y] [1 2.3 /a "str" #iss]]
 	test [split [1 2.3 /a word "str" #iss x: :y] :all-word?]	[[/a word #iss x: :y] [1 2.3 "str"]]
 
+	test [split [1 2 3 4 5 6] [:even?]]	[[2 4 6] [1 3 5]]
+	test [split [1 2 3 4 5 6] [:odd?]]	[[1 3 5] [2 4 6]]
+
 	;-------------------------------------------------------------------------------
 
 	test [split [1 2.3 /a word "str" #iss x: :y <T>] [:number? :any-string?]]	[[1 2.3] ["str" <T>] [/a word #iss x: :y]]
@@ -381,6 +384,9 @@ do [
 ;	;!! Splitting /at with a non-integer excludes the delimiter from the result
 ;	test [split/at [1 2.3 /a word "str" #iss x: :y] "str" []]	[[1 2.3 /a word] [#iss x: :y]]
 ;	test [split/at [1 2.3 /a word "str" #iss x: :y] 'word []]	[[1 2.3 /a] ["str" #iss x: :y]]
+
+	;test [split "The sum is (a + b)." charset "()"] []
+	;test [split "The sum is :(a + b):." [":(" | "):"]] []
 ]
 
 ;-------------------------------------------------------------------------------
