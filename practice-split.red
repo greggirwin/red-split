@@ -165,7 +165,11 @@ split-it: has [res] [
 	; before x    which has to be [[before x]] if we DO it.
 	; etc.
 	if error? set/any 'err try [
-		append cur-task/tries [reduce now/precise form fld-rule/data]
+		; Toomas suggested the new approach, to represent/reproduce the text
+		; exactly as it was entered, not as loaded into data.
+		;append cur-task/tries [reduce now/precise form fld-rule/data]
+		repend cur-task/tries [now/precise copy fld-rule/text]
+		
 		txt-result/data: mold split load txt-input/text make-rule fld-rule/data
 		lbl-rule-err/visible?: no
 		;print mold make-rule fld-rule/data
@@ -235,6 +239,7 @@ next-task: does [
 	;txt-input/text: mold random/only inputs
 	show-cur-task
 	start-task-timer
+	set-focus fld-rule
 	;TBD ? skip over complete tasks so user can move on if they're stuck?
 	;print mold cur-task
 ]
@@ -244,6 +249,7 @@ prev-task: does [
 	set-cur-task
 	;txt-input/data: random/only inputs
 	show-cur-task
+	set-focus fld-rule
 	start-task-timer
 ]
 
@@ -351,6 +357,7 @@ open-session-file: does [
 	]
 ]
 
+make-dir %sessions/
 
 session-file: none
 start-session: does [
@@ -409,13 +416,15 @@ view/options [
 	lbl "Task ID:" txt-ID: txt 350 "___"
 	task-time: timer 50x20 glass navy on-time [tick]
 	button "Start" [start-suite] return
+
+	lbl "Here is your input:" txt-input: content 400x100 return
+	;lbl "Here is your input:" txt-input: field 400x100 return
+
 	lbl "Your goal is to get this result:" ;return
 	;pad 210x0
 	txt-goal: content "[ ... ^/^/^/^/^/^/^/ ... ]" return
 	;txt-goal: content 400x175 {["a" "b" "c"]} return
 	
-	lbl "Here is your input:" txt-input: content 400x100 return
-	;lbl "Here is your input:" txt-input: field 400x100 return
 	lbl "How do you want to split? :" fld-rule: field on-enter [split-it]  hint ""
 	button "Split (F5)" [split-it] return
 	pad 210x0 lbl-rule-err: txt 400 font-color red return
