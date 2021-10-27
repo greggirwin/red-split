@@ -5,7 +5,7 @@ Red [
   }
 ]
 context [
-	types: exclude default! make typeset! [integer! any-function! block! event!]
+	;types: exclude default! make typeset! [integer! any-function! block! event!]
 	refs: [before after at first last tail groups each limit quoted only by into]
 	arity?: function [fn [any-function!]][i: 0 parse spec-of :fn [opt string! some [word! opt block! opt string! (i: i + 1)]] i]
 	block-of?: func [input type][
@@ -24,7 +24,7 @@ context [
 		case [
 			with [
 				i: length? append funcs :delim
-				compose [s: if (to-paren compose [quote (to-paren compose/deep [attempt [(to-path reduce [bind 'funcs :mysplit i]) (arg)]])]) skip]
+				compose [s: if (to-paren compose [quote (to-paren compose/deep [attempt [(to-path reduce [bind 'funcs :split-r i]) (arg)]])]) skip]
 			]
 			true [
 				fn: :delim
@@ -64,10 +64,11 @@ context [
 		;Set refinements
 		if with [
 			if not empty? opts: intersect refs options [
-				set bind opts :mysplit true
+				 set bind opts :split-r true
 				if limit [ct: select options 'limit]
 			]
 		]
+		
 		;Clarify type of delimiter
 		delim-type: case delim-cases: [
 			quoted-each?:   all [quoted each block? :delimiter]['quoted-each]
@@ -132,7 +133,6 @@ context [
 			]
 		]
 		;Construct inner main rule
-		probe reduce [int? delim-type]
 		main: compose/deep/only case [
 			groups [
 				out: none
@@ -264,7 +264,7 @@ context [
 			true [copy []]
 		]
 		;Do it
-		parse series probe compose/only [collect into result (rule)]
+		parse series compose/only [collect into result (rule)]
 		case [
 			groups [
 				case [
