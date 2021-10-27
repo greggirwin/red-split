@@ -4,6 +4,8 @@ Red [
     2. complete groups
   }
 ]
+;#include %assert.red
+
 context [
 	;types: exclude default! make typeset! [integer! any-function! block! event!]
 	refs: [before after at first last tail groups each limit quoted only by into]
@@ -97,6 +99,7 @@ context [
 						paren? delimiter/1 [change delimiter do delimiter/1]
 					]
 				]
+				delimiter: compose/deep/only delimiter
 				'parse
 			]
 			simple?:  true ['simple]
@@ -133,7 +136,7 @@ context [
 			]
 		]
 		;Construct inner main rule
-		main: compose/deep/only case [
+		main: compose/deep/only probe case [
 			groups [
 				out: none
 				case [
@@ -264,7 +267,7 @@ context [
 			true [copy []]
 		]
 		;Do it
-		parse series compose/only [collect into result (rule)]
+		parse series probe compose/only [collect into result (rule)]
 		case [
 			groups [
 				case [
@@ -280,4 +283,16 @@ context [
 		]
 		result
 	]
+	comment {
+	#assert [
+		;Test delimiter-types, no refinements
+		[[0] [1 b 2 c 3 d]]  = split-r [0 a 1 b 2 c 3 d] 'a
+		[[0] [1] [2] [3] []] = split-r [0 a 1 b 2 c 3 d] word!
+		[[0 a] [b 2 c] [d]]  = split-r [0 a 1 b 2 c 3 d] :odd?
+		[[0] [1 b] [c 3 d]]  = split-r [0 a 1 b 2 c 3 d] ['a | quote 2]
+		
+		;Dialect
+		[[0 a 1 b] [c 3 d]]  = split-r [0 a 1 b 2 c 3 d] [by quoted 2]
+	]
+	}
 ]
