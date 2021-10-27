@@ -2,12 +2,11 @@ Red [
   todo: {
     1. tail and last (reverse)
     2. complete groups
-    3. dialect
   }
 ]
 context [
 	types: exclude default! make typeset! [integer! any-function! block! event!]
-	refs: [before after at first last tail group each limit quoted only by into]
+	refs: [before after at first last tail groups each limit quoted only by into]
 	arity?: function [fn [any-function!]][i: 0 parse spec-of :fn [opt string! some [word! opt block! opt string! (i: i + 1)]] i]
 	block-of?: func [input type][
 		all [
@@ -51,7 +50,7 @@ context [
 		/first  "Split on first delimiter / keep first chunk only"
 		/last   "Split on last delimiter / keep last chunk only"
 		/tail   "Split starting from tail"
-		/group  "Split series into delimiter-specified groups"
+		/groups  "Split series into delimiter-specified groups"
 		/each   "Treat each element in block-delimiter individually"
 		/limit  "Limit number of splittings / chunks to keep"
 			ct  [integer!]
@@ -70,7 +69,7 @@ context [
 			]
 		]
 		;Clarify type of delimiter
-		delim-type: case [
+		delim-type: case delim-cases: [
 			quoted-each?:   all [quoted each block? :delimiter]['quoted-each]
 			quoted ['quoted]
 			int?:       integer? :delimiter [
@@ -103,35 +102,29 @@ context [
 		]
 		
 		;Construct delimiter
-		delim: switch/default delim-type [
+		delim: switch/default delim-type make-delim: [
 			quoted-each [make-quoted delimiter]
 			quoted [compose/only [quote (:delimiter)]]
 			fn [make-fn :delimiter]
 			DSL [parse delimiter [
-				opt [['before 'and 'after | 'at] (at: true) | 'before (before: true) | 'after (after: true) | 'by]
+				opt [['before 'and 'after | 'at] (at: true) | 'before (before: true) | 'after (after: true) | 'by (by: true)]
 				opt ['first (first: true) | 'last (last: true)]
-				opt [set ct integer! (limit: true)]
-				[s: 'quoted (quoted: true) ['each (delim-type: 'quoted-each) | (delim-type: 'quoted)] s: skip (delim: reduce ['quote s/1])
-				| 'into set delim integer! opt ['groups | 'parts | 'pieces | 'chunks] 
-				  (group: int?: true delim-type: 'int size: to integer! (length? series) / delim)
-				| 'by opt ['groups | 'parts | 'pieces | 'chunks] opt 'of opt 'size set delim integer! 
-				  (int?: true delim-type: 'int size: to integer! (length? series) / delim)
+				opt [ahead [integer! [end | 'only]] set delimiter integer! | set ct integer! (limit: true)]
+				[s: 'quoted (quoted: true) opt ['each (each: true)] set delimiter skip 
+				| 'into set delimiter skip opt 'groups (groups: true)
 				| [ 
-				    paren! (delim: do s/1)
-				  | [get-word! | get-path!] (
-				      delim: get s/1 
-					  if any-function? :delim [delim-type: 'fn fn?: true delim: make-fn :delim]
-					) 
-				  | block! (delim-type: case [
-					  int-block?: block-of? :s/1 integer! ['int-block]
-					  fn-block?:  block-of? :delimiter any-function? ['fn-block]
-				    ] delim: s/1)
-				  | skip (delim: s/1 delim-type: 'simple)
+				    paren! (delimiter: do s/1)
+				  | [get-word! | get-path!] (delimiter: get s/1)
+				  | [word! | path!] (delimiter: get s/1)
+				  | set delimiter skip 
 				  ]
-				]
+				] (
+				  delim-type: case delim-cases 
+				  delim: switch/default delim-type make-delim default-delim
+				)
 				opt ['only (only: true)]
 			] delim]
-		][
+		] default-delim: [
 			case [
 				word? :delimiter [to-lit-word delimiter]
 				path? :delimiter [to-lit-path delimiter]
@@ -139,8 +132,9 @@ context [
 			]
 		]
 		;Construct inner main rule
+		probe reduce [int? delim-type]
 		main: compose/deep/only case [
-			group [
+			groups [
 				out: none
 				case [
 					int? [
@@ -229,14 +223,14 @@ context [
 		rule: to-block case [
 			limit [reduce [0 ct]]
 			any [first last] ['opt]
-			all [group int?] [delim];[case [int? [delim]]]
+			all [groups int?] [delim];[case [int? [delim]]]
 			only ['some]
 			true ['any]
 		]
 		;Modify looper
 		case [
 			int-block? []
-			group []
+			groups []
 			all [only (at or (before and after))][insert rule compose/only [any keep (delim)]]
 			all [before only][insert rule compose/only [to (delim)]]
 			all [after only][insert rule compose/only [any (delim)]]
@@ -248,10 +242,10 @@ context [
 		rest: if not only [
 			case [
 				any [
-					all [int? not group]
+					all [int? not groups]
 					int-block?
 					before and not after
-					all [group any [first last limit]]
+					all [groups any [first last limit]]
 				] [[end | keep copy _ thru end]]
 				true [[keep copy _ thru end]]
 			]
@@ -264,15 +258,15 @@ context [
 		;Prepare result
 		;reduce [delim size]
 		result: case [
-			all [group int?] [make block! delim + 1]
+			all [groups int?] [make block! delim + 1]
 			int? [make block! to integer! delim / size + 1]
-			all [group block? :delim] [make block! 1 + length? delim]
+			all [groups block? :delim] [make block! 1 + length? delim]
 			true [copy []]
 		]
 		;Do it
 		parse series probe compose/only [collect into result (rule)]
 		case [
-			group [
+			groups [
 				case [
 					all [block? delim not fn? each][
 						if empty? system/words/last out [
