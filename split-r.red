@@ -295,6 +295,7 @@ context [
 		[[0 a] [b 2 c] [d]]  = split-r [0 a 1 b 2 c 3 d] :odd?
 		[[0] [1 b] [c 3 d]]  = split-r [0 a 1 b 2 c 3 d] ['a | quote 2]
 		[[0] [b 2] [d]]      = split-r [0 a 1 b 2 c 3 d] [word! :odd?]
+		[#{CA} #{} #{ED}]    = split-r #{CAFE FEED} #{FE}
 		
 		;Test before, after, at
 		[[0] [a 1 b 2 c 3 d]]       = split-r/before [0 a 1 b 2 c 3 d] 'a
@@ -302,8 +303,9 @@ context [
 		[[0 a] 1 [b 2 c] 3 [d]]     = split-r/at     [0 a 1 b 2 c 3 d] :odd?
 
 		;Test quoted
-		
-		
+		[[0 a 1 b] [c 3 d 4 e]]     = split-r/quoted    [0 a 1 b 2 c 3 d 4 e] 2
+		[[0 a 1 b] [2 c] [3 d 4 e]] = split-r/at/quoted [0 a 1 b [2 c] 3 d 4 e] [2 c]
+
 		;Test first, limit
 		[[0] [1 b 2 c 3 d]]     = split-r/first        [0 a 1 b 2 c 3 d] word!
 		[[0] [1] [2 c 3 d]]     = split-r/limit        [0 a 1 b 2 c 3 d] word! 2
@@ -325,11 +327,15 @@ context [
 		[[0 a 1 b] [2 c 3 d] [4]] = split-r/groups      [0 a 1 b 2 c 3 d 4] 2
 		[[0 a 1 b 2] [c 3 d 4]]   = split-r/groups/only [0 a 1 b 2 c 3 d 4] 2
 
-		;Dialect
+		;Test dialect
 		[[0 a 1 b] [c 3 d]]         = split-r [0 a 1 b 2 c 3 d]     [by quoted 2]
 		[[a 1] [b 2]]               = split-r [0 a 1 b 2 c 3 d]     [before 2 word! only]
 		[[0 a] [1 b 2] [c 3 d 4 e]] = split-r [0 a 1 b 2 c 3 d 4 e] [by first [2 3]]
 		[[[0 a] [1 b] [2 c]]]       = split-r [0 a 1 b 2 c 3 d 4 e] [into [2 3] groups only]
+		
+		;Test case
+		["a" "A" ""] = split-r      "abAB" "B"
+		["abA" ""]   = split-r/case "abAB" "B"
 	]
 	}
 ]
