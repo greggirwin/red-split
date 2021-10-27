@@ -60,6 +60,7 @@ context [
 		/only   "Omit empty chunks and rest (i.e. not specified)"
 		/with   "Add options in block"
 			options [block!]
+		/case
 		/local _ 
 		/extern fn fns s
 	][
@@ -70,9 +71,12 @@ context [
 				if limit [ct: select options 'limit]
 			]
 		]
-		
+		system/words/case [
+			word? :delimiter [delimiter: to-lit-word delimiter]
+			path? :delimiter [delimiter: to-lit-path delimiter]
+		]
 		;Clarify type of delimiter
-		delim-type: case delim-cases: [
+		delim-type: system/words/case delim-cases: [
 			quoted-each?:   all [quoted each block? :delimiter]['quoted-each]
 			quoted ['quoted]
 			int?:       integer? :delimiter [
@@ -91,7 +95,7 @@ context [
 			parse?:   block? :delimiter [
 				funcs: clear []
 				forall delimiter [
-					case [
+					system/words/case [
 						all [
 							find [get-word! get-path!] type?/word delimiter/1 
 							any-function? f: get delimiter/1
@@ -104,7 +108,7 @@ context [
 			]
 			simple?:  true ['simple]
 		]
-		
+
 		;Construct delimiter
 		delim: switch/default delim-type make-delim: [
 			quoted-each [make-quoted delimiter]
@@ -123,26 +127,20 @@ context [
 				  | set delimiter skip 
 				  ]
 				] (
-				  delim-type: case delim-cases 
-				  delim: switch/default delim-type make-delim default-delim
+				  delim-type: system/words/case delim-cases 
+				  delim: switch/default delim-type make-delim [:delimiter]
 				)
 				opt ['only (only: true)]
 			] delim]
-		] default-delim: [
-			case [
-				word? :delimiter [to-lit-word delimiter]
-				path? :delimiter [to-lit-path delimiter]
-				true [:delimiter]
-			]
-		]
+		] [:delimiter]
 		;Construct inner main rule
-		main: compose/deep/only probe case [
+		main: compose/deep/only system/words/case [
 			groups [
 				out: none
-				case [
+				system/words/case [
 					int? [
 						rest: (length? series) % delim
-						case [
+						system/words/case [
 							all [tail only] []
 							all [first only] [[keep copy _ (size + pick [1 0] rest > 0) skip]]
 							first [[opt [keep copy _ (size) skip] [end | keep copy _ thru end]]]
@@ -175,7 +173,7 @@ context [
 					]
 					true [
 						out: copy []
-						case [
+						system/words/case [
 							only [[keep (delim) | skip]]
 							true [[keep (delim) | s: skip (quote (append out s/1))]]
 						]
@@ -199,17 +197,17 @@ context [
 					]
 				]
 			]
-			at or (before and after) [case [
+			at or (before and after) [system/words/case [
 				only [[s: keep copy _ to [(delim) | if (quote (not head? s)) end] any keep (delim) opt end]]
 				;only [[keep copy _ to [(delim) | end] any keep (delim) opt end]]
 				true [[keep copy _ to (delim) keep (delim)]]
 			]]
 			after [[keep copy _ thru (delim)]]
-			before [case [
+			before [system/words/case [
 				only [[keep copy _ [(delim) to [(delim) | end]]]]
 				true [[keep copy _ [opt (delim) to [(delim) | end]]]]
 			]]
-			true [case [
+			true [system/words/case [
 				all  [first only] [[s: keep copy _ to [(delim) | if (quote (not head? s)) end]]]
 				only [[keep copy _ to [(delim) | end] any (delim) opt end]]
 				true [[keep copy _ to (delim) (delim)]]
@@ -217,21 +215,21 @@ context [
 		]
 		
 		;Add stepper if needed
-		step: case [
+		step: system/words/case [
 			
 		]
 		if step [append main reduce ['| step]]
 		
 		;Make looper
-		rule: to-block case [
+		rule: to-block system/words/case [
 			limit [reduce [0 ct]]
 			any [first last] ['opt]
-			all [groups int?] [delim];[case [int? [delim]]]
+			all [groups int?] [delim];[system/words/case [int? [delim]]]
 			only ['some]
 			true ['any]
 		]
 		;Modify looper
-		case [
+		system/words/case [
 			int-block? []
 			groups []
 			all [only (at or (before and after))][insert rule compose/only [any keep (delim)]]
@@ -243,7 +241,7 @@ context [
 		append/only rule main
 		;Construct and add rest if needed
 		rest: if not only [
-			case [
+			system/words/case [
 				any [
 					all [int? not groups]
 					int-block?
@@ -260,23 +258,29 @@ context [
 		
 		;Prepare result
 		;reduce [delim size]
-		result: case [
+		result: system/words/case [
 			all [groups int?] [make block! delim + 1]
 			int? [make block! to integer! delim / size + 1]
 			all [groups block? :delim] [make block! 1 + length? delim]
 			true [copy []]
 		]
-		;Do it
-		parse series probe compose/only [collect into result (rule)]
-		case [
+		;Do it 
+		;probe 
+		final: compose/only [collect into result (rule)]
+		either case [
+			parse/case series final
+		][
+			parse series final
+		]
+		system/words/case [
 			groups [
-				case [
+				system/words/case [
 					all [block? delim not fn? each][
 						if empty? system/words/last out [
 							remove back system/words/tail out
 						] result: out
 					]
-					block? out [result: reduce either only [[result]][[result out]]]
+					all [block? out not groups] [result: reduce either only [[result]][[result out]]]
 				]
 			]
 			tail or last [reverse result]
@@ -290,9 +294,42 @@ context [
 		[[0] [1] [2] [3] []] = split-r [0 a 1 b 2 c 3 d] word!
 		[[0 a] [b 2 c] [d]]  = split-r [0 a 1 b 2 c 3 d] :odd?
 		[[0] [1 b] [c 3 d]]  = split-r [0 a 1 b 2 c 3 d] ['a | quote 2]
+		[[0] [b 2] [d]]      = split-r [0 a 1 b 2 c 3 d] [word! :odd?]
 		
+		;Test before, after, at
+		[[0] [a 1 b 2 c 3 d]]       = split-r/before [0 a 1 b 2 c 3 d] 'a
+		[[0] [a 1] [b 2] [c 3] [d]] = split-r/after  [0 a 1 b 2 c 3 d] number!
+		[[0 a] 1 [b 2 c] 3 [d]]     = split-r/at     [0 a 1 b 2 c 3 d] :odd?
+
+		;Test quoted
+		
+		
+		;Test first, limit
+		[[0] [1 b 2 c 3 d]]     = split-r/first        [0 a 1 b 2 c 3 d] word!
+		[[0] [1] [2 c 3 d]]     = split-r/limit        [0 a 1 b 2 c 3 d] word! 2
+		[[0] [a 1] [b 2 c 3 d]] = split-r/before/limit [0 a 1 b 2 c 3 d] word! 2
+		
+		;Test only
+		[[0]]         = split-r/first/only        [0 a 1 b 2 c 3 d] word!
+		[[0] [1]]     = split-r/limit/only        [0 a 1 b 2 c 3 d] word! 2
+		[[a 1] [b 2]] = split-r/before/limit/only [0 a 1 b 2 c 3 d] word! 2
+
+		;Test sized chunks
+		[[0 a] [1 b] [2 c] [3 d]]         = split-r      [0 a 1 b 2 c 3 d] 2
+		[[0 a] [1 b 2] [c 3 d]]           = split-r      [0 a 1 b 2 c 3 d] [2 3]
+		[[0 a] [1 b 2]]                   = split-r/only [0 a 1 b 2 c 3 d] [2 3]
+		["DD" "MM" "YYYY" "SS" "MM" "HH"] = split-r      "DDMMYYYY/SSMMHH" [2 2 4 -1 2 2 2]
+		
+		;Test grouping
+		[[0 a 1 b] [2 c 3 d] []]  = split-r/groups      [0 a 1 b 2 c 3 d] 2
+		[[0 a 1 b] [2 c 3 d] [4]] = split-r/groups      [0 a 1 b 2 c 3 d 4] 2
+		[[0 a 1 b 2] [c 3 d 4]]   = split-r/groups/only [0 a 1 b 2 c 3 d 4] 2
+
 		;Dialect
-		[[0 a 1 b] [c 3 d]]  = split-r [0 a 1 b 2 c 3 d] [by quoted 2]
+		[[0 a 1 b] [c 3 d]]         = split-r [0 a 1 b 2 c 3 d]     [by quoted 2]
+		[[a 1] [b 2]]               = split-r [0 a 1 b 2 c 3 d]     [before 2 word! only]
+		[[0 a] [1 b 2] [c 3 d 4 e]] = split-r [0 a 1 b 2 c 3 d 4 e] [by first [2 3]]
+		[[[0 a] [1 b] [2 c]]]       = split-r [0 a 1 b 2 c 3 d 4 e] [into [2 3] groups only]
 	]
 	}
 ]
