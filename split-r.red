@@ -80,7 +80,9 @@ context [
 			quoted-each?:   all [quoted each block? :delimiter]['quoted-each]
 			quoted ['quoted]
 			int?:       integer? :delimiter [
-				size: to integer! (length? series) / delimiter
+				if :delimiter > 0 [
+					if 0 = size: to integer! (length? series) / delimiter [size: length? series]
+				]
 				'int
 			]
 			fn?:        any-function? :delimiter ['fn]
@@ -111,7 +113,7 @@ context [
 
 		;Construct delimiter
 		delim: switch/default delim-type make-delim: [
-			quoted-each [make-quoted delimiter]
+			quoted-each [make-quoted :delimiter]
 			quoted [compose/only [quote (:delimiter)]]
 			fn [make-fn :delimiter]
 			DSL [parse delimiter [
@@ -132,20 +134,29 @@ context [
 				)
 				opt ['only (only: true)]
 			] delim]
-		] [:delimiter]
+		] [
+			system/words/case [
+				any [
+					find [get-word! set-word! get-path! set-path!] type?/word :delimiter
+				][reduce ['quote :delimiter]]
+				true [:delimiter]
+			]
+		]
 		;Construct inner main rule
 		main: compose/deep/only system/words/case [
 			groups [
 				out: none
 				system/words/case [
 					int? [
-						rest: (length? series) % delim
-						system/words/case [
-							all [tail only] []
-							all [first only] [[keep copy _ (size + pick [1 0] rest > 0) skip]]
-							first [[opt [keep copy _ (size) skip] [end | keep copy _ thru end]]]
-							only [[(rest) [keep copy _ (size + 1) skip] (delim - rest) [keep copy _ (size) skip]]]
-							true [[keep copy _ (size) skip]]
+						either delim <= 0 [[keep (quote (copy []))]][
+							rest: (length? series) % delim
+							system/words/case [
+								all [tail only] []
+								all [first only] [[keep copy _ (size + pick [1 0] rest > 0) skip]]
+								first [[opt [keep copy _ (size) skip] [end | keep copy _ thru end]]]
+								only [[(rest) [keep copy _ (size + 1) skip] (delim - rest) [keep copy _ (size) skip]]]
+								true [[keep copy _ (size) skip]]
+							]
 						]
 					]
 					int-block? [
@@ -180,7 +191,7 @@ context [
 					]
 				]
 			]
-			int? [[keep copy _ (delim) skip]]
+			int? [either delim <= 0 [[keep (quote (copy []))]][[keep copy _ (delim) skip]]]
 			int-block? [
 				sum-ints: sum-abs delimiter 
 				[
@@ -260,7 +271,7 @@ context [
 		;reduce [delim size]
 		result: system/words/case [
 			all [groups int?] [make block! delim + 1]
-			int? [make block! to integer! delim / size + 1]
+			int? [either delim > 0 [make block! to integer! delim / size + 1][make block! 2]]
 			all [groups block? :delim] [make block! 1 + length? delim]
 			true [copy []]
 		]
