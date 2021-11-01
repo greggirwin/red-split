@@ -18,8 +18,8 @@ context [
 	]
 	sum-abs: function [block [block!]][out: 0 foreach i block [out: out + absolute i]]
 	prod: function [block [block!]][out: 1 foreach i block [out: out * i] out]
-	fn: fns: s: none
-	make-fn: function [delim /with funcs /extern fn s][
+	fn: fns: s: e: none
+	make-fn: function [delim /with funcs /extern fn s e][
 		arity: arity? :delim
 		if not find [1 2] arity [cause-error 'script 'invalid-arg [:delim]]
 		arg: pick [[s/1][s/1 s]] 1 = arity
@@ -30,14 +30,14 @@ context [
 			]
 			true [
 				fn: :delim
-				compose [s: if (to-paren compose/deep [attempt [fn (arg)]]) skip]
+				compose [s: if (to-paren compose/deep [e: attempt [fn (arg)]]) [if (all [series? e (head s) = (head e)]) :e | skip]]
 			]
 		]
 	]
 	make-quoted: function [delimiter [block!]][
 		delim: copy [] 
-		foreach i delimiter [
-			append delim compose/only [quote (i)]
+		foreach item delimiter [
+			append delim compose/only [quote (item)]
 		]
 	]
 	
@@ -62,7 +62,7 @@ context [
 			options [block!]
 		/case
 		/local _ 
-		/extern fn fns s
+		/extern fn fns s e
 	][
 		;Set refinements
 		if with [
@@ -82,6 +82,7 @@ context [
 			int?:       integer? :delimiter [
 				if :delimiter > 0 [
 					if 0 = size: to integer! (length? series) / delimiter [size: length? series]
+					size: max 1 size
 				]
 				'int
 			]

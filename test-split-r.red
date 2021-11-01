@@ -115,23 +115,21 @@ tests: [
 	[split-r "abc^M^Jde^Mfghi^Jjk" [[crlf | #"^M" | newline]]]     ["abc" "de" "fghi" "jk"]
 	[split-r "abc     de fghi  jk" [[some #" "]]]                  ["abc" "de" "fghi" "jk"]
 
-comment {
 	;---- Functions ----------------------------------------------------------------
 
-	[split-r [1 2 3 4 5 6] :even?]	[[2 4 6] [1 3 5]]
-	[split-r [1 2 3 4 5 6] :odd?]	[[1 3 5] [2 4 6]]
-	[split-r [1 2.3 /a word "str" #iss x: :y] :refinement?]	[[/a] [1 2.3 word "str" #iss x: :y]]
-	[split-r [1 2.3 /a word "str" #iss x: :y] :number?]		[[1 2.3] [/a word "str" #iss x: :y]]
-	[split-r [1 2.3 /a word "str" #iss x: :y] :any-word?]	[[word x: :y] [1 2.3 /a "str" #iss]]
-	[split-r [1 2.3 /a word "str" #iss x: :y] :all-word?]	[[/a word #iss x: :y] [1 2.3 "str"]]
+	[split-r [1 2 3 4 5 6] :even?]	[[1] [3] [5] []]
+	[split-r [1 2 3 4 5 6] :odd?]	[[] [2] [4] [6]]
+	[split-r [1 2.3 /a word "str" #iss x: :y] :refinement?]	[[1 2.3] [word "str" #iss x: :y]]
+	[split-r [1 2.3 /a word "str" #iss x: :y] :number?]		[[] [] [/a word "str" #iss x: :y]]
+	[split-r [1 2.3 /a word "str" #iss x: :y] :any-word?]	[[1 2.3 /a] ["str" #iss] [] []]
+	[split-r [1 2.3 /a word "str" #iss x: :y] :all-word?]	[[1 2.3] [] ["str"] [] [] []]
 
-	[split-r [1 2 3 4 5 6] [:even?]]	[[2 4 6] [1 3 5]]
-	[split-r [1 2 3 4 5 6] [:odd?]]	[[1 3 5] [2 4 6]]
+	[split-r [1 2 3 4 5 6] [:even?]] [[1] [3] [5] []]
+	[split-r [1 2 3 4 5 6] [:odd?]]	 [[] [2] [4] [6]]
 
 	;-------------------------------------------------------------------------------
 
 	[split-r [1 2.3 /a word "str" #iss x: :y <T>] [:number? :any-string?]]	[[1 2.3] ["str" <T>] [/a word #iss x: :y]]
-}
 	;-------------------------------------------------------------------------------
 
 	; datatypes and typesets split-r at every delimiter, because you can achieve
