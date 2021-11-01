@@ -169,8 +169,8 @@ context [
 					]
 					fn-block? [] 
 					all [block? delim not fn? each] [
-						out: make block! l: 1 + length? delim
-						loop l [append/only out copy []]
+						out: make block! len: 1 + length? delim
+						loop len [append/only out copy []]
 						blk: copy delim
 						res: copy [s: ]
 						forall blk [
