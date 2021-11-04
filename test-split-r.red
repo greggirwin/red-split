@@ -129,7 +129,7 @@ tests: [
 
 	;-------------------------------------------------------------------------------
 
-	[split-r [1 2.3 /a word "str" #iss x: :y <T>] [:number? :any-string?]]	[[1 2.3] ["str" <T>] [/a word #iss x: :y]]
+	[split-r [1 2.3 /a word "str" #iss x: :y <T>] [:word? :any-string?]]	[[1 2.3 /a] [#iss x: :y <T>]]
 	;-------------------------------------------------------------------------------
 
 	; datatypes and typesets split-r at every delimiter, because you can achieve
@@ -149,16 +149,26 @@ tests: [
 	[split-r [1 2.3 /a x: :y word "str" #iss] quote :y]			[[1 2.3 /a x:] [word "str" #iss]]
 
 	;-------------------------------------------------------------------------------
-	[split-r [1 2 3 4 5 6]      [into 2 groups]]    [[1 2 3] [4 5 6]]
-	[split-r "1234567812345678" [into 2 groups]]  ["12345678" "12345678"]
-	[split-r "1234567812345678" [into 3 groups]]  ["12345" "67812" "345678"]
-	[split-r "1234567812345678" [into 5 groups]]  ["123" "456" "781" "234" "5678"]
+	;Currently without /only series is divided into n groups of exatly same length and rest is gatheres 
+	;into additional group (even if empty). 
+	;With /only exactly N groups are returned with redistributed elements so as to consume whole series, but groups' lengths can vary by 1
+	[split-r [1 2 3 4 5 6]      [into 2 groups]]  [[1 2 3] [4 5 6] []]  
+	[split-r "1234567812345678" [into 2 groups]]  ["12345678" "12345678" ""]
+	[split-r "1234567812345678" [into 3 groups]]  ["12345" "67812" "34567" "8"]
+	[split-r "1234567812345678" [into 5 groups]]  ["123" "456" "781" "234" "567" "8"]
+	
+	[split-r [1 2 3 4 5 6]      [into 2 groups only]]  [[1 2 3] [4 5 6]]  
+	[split-r "1234567812345678" [into 2 groups only]]  ["12345678" "12345678"]
+	[split-r "1234567812345678" [into 3 groups only]]  ["123456" "78123" "45678"]
+	[split-r "1234567812345678" [into 5 groups only]]  ["1234" "567" "812" "345" "678"]
 
 	; Dlm longer than series
-	[split-r "123"   [into 6 groups]]			["1" "2" "3" "" "" ""] ;or ["1" "2" "3"]
-	[split-r [1 2 3] [into 6 groups]]			[[1] [2] [3] [] [] []] ;or [[1] [2] [3]]
-	[split-r quote (1 2 3) [into 6 groups]]	[(1) (2) (3) () () ()] ;or [(1) (2) (3)]
-	;[split-r [1 2 3] [into 6 groups]]     [[1] [2] [3] none none none] ;or [1 2 3]
+	[split-r "123"   [into 6 groups]]		["" "" "" "" "" "" "123"];["1" "2" "3" "" "" ""] ;or ["1" "2" "3"]
+	[split-r [1 2 3] [into 6 groups]]		[[] [] [] [] [] [] [1 2 3]]
+	[split-r quote (1 2 3) [into 6 groups]]	[() () () () () () (1 2 3)]
+	
+	[split-r "123"   [into 6 groups only]]	["1" "2" "3" "" "" ""]
+	[split-r [1 2 3] [into 6 groups only]]  [[1] [2] [3] [] [] []]
 
 
 	[split-r [1 2 3 4 5 6] [2 1 3]]                  [[1 2] [3] [4 5 6]]
@@ -166,48 +176,41 @@ tests: [
 	[split-r first [(1 2 3 4 5 6 7 8 9)] 3]          [(1 2 3) (4 5 6) (7 8 9)]
 	[split-r #{0102030405060708090A} [4 3 1 2]]      [#{01020304} #{050607} #{08} #{090A}]
 
-	[split-r [1 2 3 4 5 6] [2 1]]                [[1 2] [3]]
-
+	[split-r [1 2 3 4 5 6] [2 1]]                [[1 2] [3] [4 5] [6]]
 	[split-r [1 2 3 4 5 6] [2 1 3 5]]            [[1 2] [3] [4 5 6] []]
-
 	[split-r [1 2 3 4 5 6] [2 1 6]]              [[1 2] [3] [4 5 6]]
-
-	; Old design for negative skip vals
-	;[split-r [1 2 3 4 5 6] [3 2 2 -2 2 -4 3]]    [[1 2 3] [4 5] [6] [5 6] [3 4 5]]
-	; New design for negative skip vals
+	;Negative size skips N elements
 	[split-r [1 2 3 4 5 6] [2 -2 2]]             [[1 2] [5 6]]
 
 	[split-r "YYYYMMDD/HHMMSS"  [4 2 2 -1 2 2 2]]	["YYYY" "MM" "DD" "HH" "MM" "SS"]
 	[split-r "Mon, 24 Nov 1997" [3 -2 2 -1 3 -1 4]]	["Mon" "24" "Nov" "1997"]
 
-	[split-r "1,2,3" [at #","]]     	["1" "2" "3"]
+	[split-r "1,2,3" [by #","]]      ["1" "2" "3"]
+	[split-r "1,2,3" [at #","]]      ["1" #"," "2" #"," "3"]
 	[split-r "1,2,3" [before #","]]  ["1" ",2" ",3"]
 	[split-r "1,2,3" [after #","]]   ["1," "2," "3"]
 
-	[split-r ",1,2,3," [at #","]]      ["" "1" "2" "3" ""]
-	;!! These are a bit tricky to reason about. The delimiter goes with
-	;	the next or previous value, so what constitutes an empty field
-	;	at the end, as with simple splitting? These results make the
-	;	most sense to me, but I'm only 90% confident in that choice.
-	;	The crux being that if a delimiter exists it needs to be in the
-	;	result, attached to a part.
+	[split-r ",1,2,3," [by #","]]      ["" "1" "2" "3" ""]
+	[split-r ",1,2,3," [at #","]]      ["" #"," "1" #"," "2" #"," "3" #"," ""]
 	[split-r ",1,2,3," [before #","]]  [",1" ",2" ",3" ","]	; delim goes with next value
 	[split-r ",1,2,3," [after #","]]   ["," "1," "2," "3,"]  ; delim goes with prev value
 
-	[split-r "1 2 3" [at #","]]     	["1 2 3"]
+	[split-r "1 2 3" [by #","]]      ["1 2 3"]
+	[split-r "1 2 3" [at #","]]      ["1 2 3"]
 	[split-r "1 2 3" [before #","]]  ["1 2 3"]
 	[split-r "1 2 3" [after #","]]   ["1 2 3"]
 
 	; Spec too many counts
-	[split-r "1,2,3"   [at 5 #","]]		["1" "2" "3"]
-	[split-r "1,2,3"   [before 5 #","]]	["1" ",2" ",3"]
-	[split-r "1,2,3"   [after 5 #","]] 	["1," "2," "3"]
-	[split-r ",1,2,3," [at 5 #","]]		["" "1" "2" "3" ""]
-	[split-r ",1,2,3," [before 5 #","]]	[",1" ",2" ",3" ","]
-	[split-r ",1,2,3," [after 5 #","]]		["," "1," "2," "3,"]
-	[split-r ",1,2,3," [at 99 #","]]		["" "1" "2" "3" ""]
-	[split-r ",1,2,3," [before 99 #","]]	[",1" ",2" ",3" ","]
-	[split-r ",1,2,3," [after 99 #","]]	["," "1," "2," "3,"]
+	[split-r "1,2,3"   [by 5 #","]]		 ["1" "2" "3"]
+	[split-r "1,2,3"   [at 5 #","]]		 ["1" #"," "2" #"," "3"]
+	[split-r "1,2,3"   [before 5 #","]]	 ["1" ",2" ",3"]
+	[split-r "1,2,3"   [after 5 #","]] 	 ["1," "2," "3"]
+	[split-r ",1,2,3," [by 5 #","]]		 ["" "1" "2" "3" ""]
+	[split-r ",1,2,3," [before 5 #","]]	 [",1" ",2" ",3" ","]
+	[split-r ",1,2,3," [after 5 #","]]	 ["," "1," "2," "3,"]
+	[split-r ",1,2,3," [by 99 #","]]	 ["" "1" "2" "3" ""]
+	[split-r ",1,2,3," [before 99 #","]] [",1" ",2" ",3" ","]
+	[split-r ",1,2,3," [after 99 #","]]	 ["," "1," "2," "3,"]
 
 	; TBD add error checks to tests
 	; These SHOULD fail
