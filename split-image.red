@@ -57,42 +57,6 @@ context [
         reduce [xs ys]
     ]
     
-    get-channel-data: function [
-        data    [binary!]
-        size    [pair!]
-        x-sz    [block!]
-        y-sz    [block!]
-        channel [word!]
-    ][
-        offs: select [rgb: 3 alpha: 1] channel
-        img-data: make block! (length? xs) * (length? ys) * offs
-        
-        forall ys [
-            either 1 > ys/1 [ 
-                data: at data offs * ys/1 * w ; skip the negative spans
-            ][
-                n: 0
-                foreach x xs [              ; just prepare blocks to be used for images
-                    if positive? x [
-                        append/only img-data reduce [as-pair x ys/1 copy #{}]
-                        n: n + 1
-                    ]
-                ]
-                loop ys/1 [                 ; for each row in the current span
-                    k: negate n
-                    foreach x xs [          ; fill the blocks with data
-                        if positive? x [
-                            append last first at tail img-data k copy/part data offs * x
-                            k: k + 1
-                        ]
-                        data: next at data offs * absolute x
-                    ]    
-                ]
-            ]    
-        ]
-        img-data
-    ]
-    
     set 'split-image function [
         img  [image!]
         x-sz [integer! block!]
@@ -101,13 +65,22 @@ context [
         res: init-grid img/size x-sz y-sz
         xs: res/1
         ys: res/2
-        rgb:   get-channel-data img/rgb   img/size xs ys 'rgb
-        alpha: get-channel-data img/alpha img/size xs ys 'alpha
-    
-        ; combine the rgb and alpha to make animage
-        collect [                  
-            repeat n length? rgb [
-                keep make image! reduce[rgb/:n/1 rgb/:n/2 alpha/:n/2]
+        y-offs: 0
+        
+        collect [
+            foreach y ys [
+                if positive? y [
+                    x-offs: 0
+                    foreach x xs [
+                        if positive? x [
+                            keep draw/transparent as-pair x y compose [
+                                image (img) crop (as-pair x-offs y-offs) (as-pair x-offs + x y-offs + y)
+                            ]
+                        ]
+                        x-offs: x-offs + absolute x
+                    ]
+                ]    
+                y-offs: y-offs + absolute y
             ]
         ]
     ]
