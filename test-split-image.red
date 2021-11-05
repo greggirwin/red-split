@@ -29,7 +29,7 @@ refresh: has [
 ][
     repeat n 5 [
         img: to-path reduce [to-word rejoin ["expl" n] 2]
-        set img res/(n * 2 + frame % 25 + 1) 
+        set img res/(n * 4 + frame % 25 + 1) 
         pos: to-path reduce [to-word rejoin ["expl" n] 3]
         set pos as-pair to integer! 120 * (cosine 25 * n + phi) + 128
                              to integer! 60 * (sine 2 * (25 * n + phi)) + 68
