@@ -25,7 +25,7 @@ frame: 1
 phi: 0
 
 refresh: has [
-    img pos
+    img pos n
 ][
     repeat n 5 [
         img: to-path reduce [to-word rejoin ["expl" n] 2]
