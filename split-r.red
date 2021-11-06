@@ -8,7 +8,7 @@ Red [
 
 context [
 	;types: exclude default! make typeset! [integer! any-function! block! event!]
-	refs: [before after at first last tail groups each limit quoted only by into]
+	refs: [before after around first last tail groups each limit quoted only by into]
 	arity?: function [fn [any-function!]][i: 0 parse spec-of :fn [opt string! some [word! opt block! opt string! (i: i + 1)]] i]
 	block-of?: func [input type][
 		all [
@@ -21,23 +21,59 @@ context [
 	fn: fns: s: e: none
 	make-fn: function [delim /with funcs /extern fn s e][
 		arity: arity? :delim
-		if not find [1 2] arity [cause-error 'script 'invalid-arg [:delim]]
-		arg: pick [[s/1][s/1 s]] 1 = arity
+		if not find [1 2 3] arity [cause-error 'script 'invalid-arg [:delim]]
+		arg: case [
+			1 = arity [[s/1]]
+			2 = arity [set bind 'before :split-r yes [s/-1 s/1]] ;Usually comparison, by default split between items
+			true [[s/-1 s/1 s]] ;Total control, needs to use /before to not eat item
+		]
 		case [
 			with [
 				i: length? append funcs :delim
-				compose [s: if (to-paren compose [quote (to-paren compose/deep [attempt [(to-path reduce [bind 'funcs :split-r i]) (arg)]])]) skip]
+				either op? :delim [
+					compose [s: if (to-paren compose [
+						quote (to-paren compose/deep [
+							fn: (to-get-path reduce [bind 'funcs :split-r i]) 
+							attempt [(arg/1) fn (arg/2)]
+						])
+					]) skip]
+				][
+					compose [s: if (to-paren compose [
+						quote (to-paren compose/deep [
+							attempt [(to-path reduce [bind 'funcs :split-r i]) (arg)]
+						])
+					]) skip]
+				]
 			]
 			true [
 				fn: :delim
-				compose [s: if (to-paren compose/deep [e: attempt [fn (arg)]]) [if (all [series? e (head s) = (head e)]) :e | skip]]
+				either op? :delim [
+					compose [s: if (to-paren compose/deep [e: attempt [(arg/1) fn (arg/2)]]) skip]
+				][
+					compose [s: if (to-paren compose/deep [e: attempt [fn (arg)]]) 
+						[if (all [series? e (head s) = (head e)]) :e | skip]
+					]
+				]
 			]
 		]
 	]
 	make-quoted: function [delimiter [block!]][
 		delim: copy [] 
 		foreach item delimiter [
-			append delim compose/only [quote (item)]
+			append delim either '| = item ['|][compose/only [quote (item)]]
+		]
+	]
+	transform: function [delimiter funcs][
+		forall delimiter [
+			system/words/case [
+				find [change insert replace] delimiter/1 [cause-error 'script 'invalid-arg [:delimiter]]
+				all [
+					find [get-word! get-path!] type?/word delimiter/1 
+					any-function? f: get delimiter/1
+				][change/only delimiter make-fn/with :f funcs]
+				paren? delimiter/1 [change delimiter do delimiter/1]
+				block? delimiter/1 [transform delimiter/1 funcs]
+			]
 		]
 	]
 	
@@ -48,11 +84,11 @@ context [
 		/by     "Dummy (default) refinement for compatibility with dialect"
 		/before "Split before the delimiter"
 		/after  "Split after the delimiter"
-		/at     "Split before and after the delimiter"
+		/around "Split before and after the delimiter"
 		/first  "Split on first delimiter / keep first chunk only"
 		/last   "Split on last delimiter / keep last chunk only"
 		/tail   "Split starting from tail"
-		/groups  "Split series into delimiter-specified groups"
+		/groups "Split series into delimiter-specified groups"
 		/each   "Treat each element in block-delimiter individually"
 		/limit  "Limit number of splittings / chunks to keep"
 			ct  [integer!]
@@ -86,6 +122,7 @@ context [
 				]
 				'int
 			]
+			;pair? :delimiter ['pair] ;;???
 			fn?:        any-function? :delimiter ['fn]
 			int-block?: block-of? :delimiter integer! ['int-block]
 			fn-block?:  block-of? :delimiter any-function? ['fn-block]
@@ -97,15 +134,7 @@ context [
 			]
 			parse?:   block? :delimiter [
 				funcs: clear []
-				forall delimiter [
-					system/words/case [
-						all [
-							find [get-word! get-path!] type?/word delimiter/1 
-							any-function? f: get delimiter/1
-						][change/only delimiter make-fn/with :f funcs]
-						paren? delimiter/1 [change delimiter do delimiter/1]
-					]
-				]
+				transform delimiter funcs
 				delimiter: compose/deep/only delimiter
 				'parse
 			]
@@ -118,7 +147,7 @@ context [
 			quoted [compose/only [quote (:delimiter)]]
 			fn [make-fn :delimiter]
 			DSL [parse delimiter [
-				opt [['before 'and 'after | 'at] (at: true) | 'before (before: true) | 'after (after: true) | 'by (by: true)]
+				opt [['before 'and 'after | 'around] (around: true) | 'before (before: true) | 'after (after: true) | 'by (by: true)]
 				opt ['first (first: true) | 'last (last: true)]
 				opt [ahead [integer! [end | 'only]] set delimiter integer! | set ct integer! (limit: true)]
 				[s: 'quoted (quoted: true) opt ['each (each: true)] set delimiter skip 
@@ -160,6 +189,8 @@ context [
 							]
 						]
 					]
+					;delim-type = 'pair [ ;;???
+					;]
 					int-block? [
 						out: copy [s: if (to-paren compose [(quote (length? s)) >= (prod delim)])]
 						ints: copy delim
@@ -170,12 +201,13 @@ context [
 					]
 					fn-block? [] 
 					all [block? delim not fn? each] [
-						out: make block! len: 1 + length? delim
+						out: make block! len: -1 + length? delim
 						loop len [append/only out copy []]
 						blk: copy delim
 						res: copy [s: ]
 						forall blk [
-							append res compose [(blk/1) (to-paren compose [quote (to-paren compose [append pick out (index? blk) s/1])]) |]
+							append res blk/1
+							append/only res quote (append/only out/1 copy/part series s)
 						]
 						either only [
 							append res compose [skip]
@@ -209,7 +241,7 @@ context [
 					]
 				]
 			]
-			at or (before and after) [system/words/case [
+			around or (before and after) [system/words/case [
 				only [[s: keep copy _ to [(delim) | if (quote (not head? s)) end] any keep (delim) opt end]]
 				;only [[keep copy _ to [(delim) | end] any keep (delim) opt end]]
 				true [[keep copy _ to (delim) keep (delim)]]
@@ -244,7 +276,7 @@ context [
 		system/words/case [
 			int-block? []
 			groups []
-			all [only (at or (before and after))][insert rule compose/only [any keep (delim)]]
+			all [only (around or (before and after))][insert rule compose/only [any keep (delim)]]
 			all [before only][insert rule compose/only [to (delim)]]
 			all [after only][insert rule compose/only [any (delim)]]
 			only [insert rule compose/only [any (delim)]]
@@ -277,7 +309,7 @@ context [
 			true [copy []]
 		]
 		;Do it 
-		;probe 
+		probe 
 		final: compose/only [collect into result (rule)]
 		either case [
 			parse/case series final
@@ -309,14 +341,14 @@ context [
 		[[0] [b 2] [d]]      = split-r [0 a 1 b 2 c 3 d] [word! :odd?]
 		[#{CA} #{} #{ED}]    = split-r #{CAFE FEED} #{FE}
 		
-		;Test before, after, at
+		;Test before, after, around
 		[[0] [a 1 b 2 c 3 d]]       = split-r/before [0 a 1 b 2 c 3 d] 'a
 		[[0] [a 1] [b 2] [c 3] [d]] = split-r/after  [0 a 1 b 2 c 3 d] number!
-		[[0 a] 1 [b 2 c] 3 [d]]     = split-r/at     [0 a 1 b 2 c 3 d] :odd?
+		[[0 a] 1 [b 2 c] 3 [d]]     = split-r/around     [0 a 1 b 2 c 3 d] :odd?
 
 		;Test quoted
 		[[0 a 1 b] [c 3 d 4 e]]     = split-r/quoted    [0 a 1 b 2 c 3 d 4 e] 2
-		[[0 a 1 b] [2 c] [3 d 4 e]] = split-r/at/quoted [0 a 1 b [2 c] 3 d 4 e] [2 c]
+		[[0 a 1 b] [2 c] [3 d 4 e]] = split-r/around/quoted [0 a 1 b [2 c] 3 d 4 e] [2 c]
 
 		;Test first, limit
 		[[0] [1 b 2 c 3 d]]     = split-r/first        [0 a 1 b 2 c 3 d] word!
