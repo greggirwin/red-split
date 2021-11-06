@@ -73,6 +73,7 @@ context [
 				][change/only delimiter make-fn/with :f funcs]
 				paren? delimiter/1 [change delimiter do delimiter/1]
 				block? delimiter/1 [transform delimiter/1 funcs]
+				word?  delimiter/1 [if block? d: get delimiter/1 [transform d funcs]]
 			]
 		]
 	]
