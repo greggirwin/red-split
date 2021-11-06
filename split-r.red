@@ -309,7 +309,7 @@ context [
 			true [copy []]
 		]
 		;Do it 
-		probe 
+		;probe 
 		final: compose/only [collect into result (rule)]
 		either case [
 			parse/case series final
