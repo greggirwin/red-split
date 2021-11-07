@@ -19,13 +19,25 @@ context [
 	sum-abs: function [block [block!]][out: 0 foreach i block [out: out + absolute i]]
 	prod: function [block [block!]][out: 1 foreach i block [out: out * i] out]
 	fn: fns: s: e: none
-	make-fn: function [delim /with funcs /extern fn s e][
+	set-before: does [set bind 'before :split-r yes]
+	series: to-block series!
+	check-series: function [types][all [
+		not empty? intersect series types
+		empty? exclude types series
+	]]
+	make-fn: function [delim /with funcs /extern fn s e /local b][
 		arity: arity? :delim
 		if not find [1 2 3] arity [cause-error 'script 'invalid-arg [:delim]]
-		arg: case [
-			1 = arity [[s/1]]
-			2 = arity [set bind 'before :split-r yes [s/-1 s/1]] ;Usually comparison, by default split between items
-			true [[s/-1 s/1 s]] ;Total control, needs to use /before to not eat item
+		types: copy []
+		parse spec-of :delim [opt string! some [skip [set b block! (append/only types b) | (append/only types copy [])] opt string!]]
+		arg: switch arity [
+			1 [either check-series types/1 [[s]][[s/1]]] ; Needs /before to not eat item
+			2 [case [
+				check-series types/1 [[s s/1]] ; First arg is series. Needs /before to not eat item
+				check-series types/2 [[s/1 s]] ; Second arg is series. Needs /before to not eat item
+				true [set-before [s/-1 s/1]]   ;Usually comparison, by default split between items
+			]]
+			3 [[s/-1 s/1 s]] ;Total control, needs to use /before to not eat item
 		]
 		case [
 			with [
@@ -57,10 +69,19 @@ context [
 			]
 		]
 	]
-	make-quoted: function [delimiter [block!]][
+	word-cases: [
+		case [compose/only system/words/case [
+			lit-word? item [[ahead lit-word! quote (item)]] 
+			word? item [[ahead word! (to-lit-word item)]] 
+			true [[quote (item)]]
+		]]
+		item == quote | ['|]
+		true [compose/only either lit-word? item [[ahead lit-word! quote (item)]][[quote (item)]]]
+	]
+	make-quoted: function [delimiter [block!] case][
 		delim: copy [] 
 		foreach item delimiter [
-			append delim either '| = item ['|][compose/only [quote (item)]]
+			append delim system/words/case bind word-cases :make-quoted
 		]
 	]
 	transform: function [delimiter funcs][
@@ -92,12 +113,14 @@ context [
 		/first  "Split on first delimiter / keep first chunk only"
 		/last   "Split on last delimiter / keep last chunk only"
 		/tail   "Split starting from tail"
-		/groups "Split series into delimiter-specified groups"
+		/groups "Split into delimiter-specified nested groups"
 		/each   "Treat each element in block-delimiter individually"
 		/limit  "Limit number of splittings / chunks to keep"
 			ct  [integer!]
 		/quoted "Treat delimiter as quoted"
 		/only   "Omit empty chunks and rest (i.e. not specified)"
+		/morph  "Transform splitted chunks"
+			as
 		/with   "Add options in block"
 			options [block!]
 		/case
@@ -147,8 +170,11 @@ context [
 
 		;Construct delimiter
 		delim: switch/default delim-type make-delim: [
-			quoted-each [make-quoted :delimiter]
-			quoted [compose/only [quote (:delimiter)]]
+			quoted-each [make-quoted :delimiter case]
+			quoted [
+				item: :delimiter 
+				compose/only system/words/case bind word-cases :split-r
+			]
 			fn [make-fn :delimiter]
 			DSL [parse delimiter [
 				opt [['before 'and 'after | 'around] (around: true) | 'before (before: true) | 'after (after: true) | 'by (by: true)]
@@ -204,20 +230,48 @@ context [
 						append out res
 					]
 					fn-block? [] 
-					all [block? delim not fn? each] [
-						out: make block! len: -1 + length? delim
+					all [block? delim] [
+						out: make block! len: length? delim
 						loop len [append/only out copy []]
 						blk: copy delim
-						res: copy [s: ]
+						res: copy [s:]
 						forall blk [
-							append res blk/1
-							append/only res quote (append/only out/1 copy/part series s)
+							i: index? blk
+							out: at head out i
+							system/words/case [
+								head? blk [
+									foreach o out [
+										append o [append/only out/1 copy/part series s]
+									]
+								]
+								last? blk [
+									append pick head out i compose [e: copy (path: to-path compose [out (i - 1)]) clear (path)]
+								]
+								true [
+									foreach o out [
+										append o compose [append/only (to-path compose [out (i)]) copy (path: to-path compose [out (i - 1)]) clear (path)]
+									]
+								]
+							]
 						]
-						either only [
-							append res compose [skip]
-						][
-							append res compose [skip (to-paren compose [quote (to-paren compose [append pick out (1 + length? blk) s/1])])]
+						out: head out
+						forall blk [
+							;either last? blk [   ; Doesn't work because `end` alone is not enough 
+							;	append/only res either block? blk/1 [append blk/1 [| end]][compose [(blk/1) | end]]
+							;][
+							append/only res blk/1
+							;]
+							append/only res to-paren compose [quote (to-paren out/(index? blk))]
+							either last? blk [append res [keep (quote (e)) series:]][append res quote series:]
+							append res '|
 						]
+						foreach o out [clear o]
+						;either only [
+							append res 'skip
+						;][
+						;	append res compose [skip (to-paren compose [quote (to-paren compose [append pick out (1 + length? blk) s/1])])]
+						;]
+						res
 					]
 					true [
 						out: copy []
@@ -294,7 +348,7 @@ context [
 					all [int? not groups]
 					int-block?
 					before and not after
-					all [groups any [first last limit]]
+					groups ;all [groups any [first last limit]]
 				] [[end | keep copy _ thru end]]
 				true [[keep copy _ thru end]]
 			]
@@ -313,15 +367,17 @@ context [
 			true [copy []]
 		]
 		;Do it 
-		probe 
+		;probe 
 		final: compose/only [collect into result (rule)]
 		either case [
 			parse/case series final
 		][
 			parse series final
 		]
+		de-lf: func [s][foreach b s [if block? b [new-line/all b no]]]
 		system/words/case [
 			groups [
+				de-lf result
 				system/words/case [
 					all [block? delim not fn? each][
 						if empty? system/words/last out [
