@@ -71,9 +71,12 @@ context [
 					find [get-word! get-path!] type?/word delimiter/1 
 					any-function? f: get delimiter/1
 				][change/only delimiter make-fn/with :f funcs]
-				paren? delimiter/1 [change delimiter do delimiter/1]
+				paren? delimiter/1 [
+					change delimiter d: do delimiter/1 
+					if word? delimiter/1 [d: attempt [get delimiter/1] if block? :d [transform d funcs]]
+				]
 				block? delimiter/1 [transform delimiter/1 funcs]
-				word?  delimiter/1 [if block? d: get delimiter/1 [transform d funcs]]
+				word?  delimiter/1 [d: attempt [get delimiter/1] if block? :d [transform d funcs]]
 			]
 		]
 	]
@@ -310,7 +313,7 @@ context [
 			true [copy []]
 		]
 		;Do it 
-		;probe 
+		probe 
 		final: compose/only [collect into result (rule)]
 		either case [
 			parse/case series final
