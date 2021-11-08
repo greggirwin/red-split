@@ -111,20 +111,23 @@ context [
 		/before "Split before the delimiter"
 		/after  "Split after the delimiter"
 		/around "Split before and after the delimiter"
+		
+		/groups "Split into delimiter-specified (possibly nested) groups"
+		
 		/first  "Split on first delimiter / keep first chunk only"
 		/last   "Split on last delimiter / keep last chunk only"
 		/tail   "Split starting from tail"
-		/groups "Split into delimiter-specified (possibly nested) groups"
-		/each   "Treat each element in block-delimiter individually"
+		
 		/limit  "Limit number of splittings / chunks to keep"
 			ct  [integer!]
-		/quoted "Treat delimiter as quoted"
 		/only   "Omit empty chunks and rest (i.e. not specified)"
-		/morph  "Transform splitted chunks"
-			as
+		
+		/quoted "Treat delimiter as quoted"
+		/each   "Treat each element in block-delimiter individually"
+		/case
+
 		/with   "Add options in block"
 			options [block!]
-		/case
 		/local _ 
 		/extern fn fns s e
 	][
