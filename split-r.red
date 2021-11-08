@@ -1,14 +1,14 @@
 Red [
   todo: {
     1. tail and last (reverse)
-    2. complete into
+    2. complete groups
   }
 ]
 ;#include %assert.red
 
 context [
 	;types: exclude default! make typeset! [integer! any-function! block! event!]
-	refs: [before after around first last tail each limit quoted only by into]
+	refs: [before after around first last tail each limit quoted only by into groups]
 	arity?: function [fn [any-function!]][i: 0 parse spec-of :fn [opt string! some [word! opt block! opt string! (i: i + 1)]] i]
 	block-of?: func [input type][
 		all [
@@ -114,7 +114,7 @@ context [
 		/first  "Split on first delimiter / keep first chunk only"
 		/last   "Split on last delimiter / keep last chunk only"
 		/tail   "Split starting from tail"
-		/into   "Split into delimiter-specified (possibly nested) groups"
+		/groups "Split into delimiter-specified (possibly nested) groups"
 		/each   "Treat each element in block-delimiter individually"
 		/limit  "Limit number of splittings / chunks to keep"
 			ct  [integer!]
@@ -182,7 +182,7 @@ context [
 				opt ['first (first: true) | 'last (last: true)]
 				opt [ahead [integer! [end | 'only]] set delimiter integer! | set ct integer! (limit: true)]
 				[s: 'quoted (quoted: true) opt ['each (each: true)] set delimiter skip 
-				| 'into set delimiter skip opt 'groups (into: true)
+				| 'into set delimiter skip opt 'groups (groups: true)
 				| [ 
 				    paren! (delimiter: do s/1)
 				  | [get-word! | get-path!] (delimiter: get s/1)
@@ -205,7 +205,7 @@ context [
 		]
 		;Construct inner main rule
 		main: compose/deep/only system/words/case [
-			into [
+			groups [
 				out: none
 				system/words/case [
 					int? [
@@ -324,14 +324,14 @@ context [
 		rule: to-block system/words/case [
 			limit [reduce [0 ct]]
 			any [first last] ['opt]
-			all [into int?] [delim];[system/words/case [int? [delim]]]
+			all [groups int?] [delim];[system/words/case [int? [delim]]]
 			only ['some]
 			true ['any]
 		]
 		;Modify looper
 		system/words/case [
 			int-block? []
-			into []
+			groups []
 			all [only (around or (before and after))][insert rule compose/only [any keep (delim)]]
 			all [before only][insert rule compose/only [to (delim)]]
 			all [after only][insert rule compose/only [any (delim)]]
@@ -343,12 +343,12 @@ context [
 		rest: if not only [
 			system/words/case [
 				any [
-					all [int? not into]
+					all [int? not groups]
 					int-block?
 					before and not after
-					;all [into any [first last limit]]
+					;all [groups any [first last limit]]
 				] [[end | keep copy _ thru end]]
-				into [
+				groups [
 					if all [not int? block? :delim] [compose/deep [
 						[s: opt [
 							if (to-paren compose [not empty? (path: to-path compose [out (-1 + length? out)])]) 
@@ -367,9 +367,9 @@ context [
 		;Prepare result
 		;reduce [delim size]
 		result: system/words/case [
-			all [into int?] [make block! delim + 1]
+			all [groups int?] [make block! delim + 1]
 			int? [either delim > 0 [make block! to integer! delim / size + 1][make block! 2]]
-			all [into block? :delim] [make block! 1 + length? delim]
+			all [groups block? :delim] [make block! 1 + length? delim]
 			true [copy []]
 		]
 		;Do it 
@@ -381,7 +381,7 @@ context [
 			parse series final
 		]
 		system/words/case [
-			into [
+			groups [
 				
 				system/words/case [
 					all [block? delim not fn? each][
@@ -390,7 +390,7 @@ context [
 						] result: out
 					]
 					;block? delim [if not empty? b: back back out [append result b]]
-					;all [block? out not into] [result: reduce either only [[result]][[result out]]]
+					;all [block? out not groups] [result: reduce either only [[result]][[result out]]]
 				]
 				de-lf result
 			]
@@ -434,9 +434,9 @@ context [
 		["DD" "MM" "YYYY" "SS" "MM" "HH"] = split-r      "DDMMYYYY/SSMMHH" [2 2 4 -1 2 2 2]
 		
 		;Test grouping
-		[[0 a 1 b] [2 c 3 d] []]  = split-r/into      [0 a 1 b 2 c 3 d] 2
-		[[0 a 1 b] [2 c 3 d] [4]] = split-r/into      [0 a 1 b 2 c 3 d 4] 2
-		[[0 a 1 b 2] [c 3 d 4]]   = split-r/into/only [0 a 1 b 2 c 3 d 4] 2
+		[[0 a 1 b] [2 c 3 d] []]  = split-r/groups      [0 a 1 b 2 c 3 d] 2
+		[[0 a 1 b] [2 c 3 d] [4]] = split-r/groups      [0 a 1 b 2 c 3 d 4] 2
+		[[0 a 1 b 2] [c 3 d 4]]   = split-r/groups/only [0 a 1 b 2 c 3 d 4] 2
 
 		;Test dialect
 		[[0 a 1 b] [c 3 d]]         = split-r [0 a 1 b 2 c 3 d]     [by quoted 2]
