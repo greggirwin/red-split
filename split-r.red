@@ -126,6 +126,8 @@ context [
 		/each   "Treat each element in block-delimiter individually"
 		/case
 
+		;/morph  "Transform splitted chunks"
+		;	as
 		/with   "Add options in block"
 			options [block!]
 		/local _ 
@@ -240,19 +242,23 @@ context [
 						loop len [append/only out copy []]
 						blk: copy delim
 						res: copy [s:]
+						waiting: none
 						forall blk [
 							i: index? blk
 							out: at head out i
 							system/words/case [
 								head? blk [
+									waiting: 1
 									foreach o out [
 										append o [append/only out/1 copy/part series s]
 									]
 								]
 								last? blk [
+									waiting: none
 									append pick head out i compose [e: copy (path: to-path compose [out (i - 1)]) clear (path)]
 								]
 								true [
+									waiting: i
 									foreach o out [
 										append o compose [append/only (to-path compose [out (i)]) copy (path: to-path compose [out (i - 1)]) clear (path)]
 									]
@@ -354,8 +360,13 @@ context [
 				groups [
 					if all [not int? block? :delim] [compose/deep [
 						[s: opt [
-							if (to-paren compose [not empty? (path: to-path compose [out (-1 + length? out)])]) 
-							(to-paren compose [e: (to-paren compose [copy append (path) copy/part series s clear (path)]) keep (quote (e))])
+							;if (to-paren compose [not empty? (path: to-path compose [out (-1 + length? out)])]) 
+							;(to-paren compose [e: copy append (path) copy/part series s clear (path)]) keep (quote (e))
+							if (quote (x: clear [] any [
+								not empty? e: copy/part series s
+								forall out [if any [not empty? out/1 not empty? x] [index? out e: copy append/only x copy out/1 clear out/1]]
+							])) 
+							keep (quote (e))
 						]]
 					]]
 				]
