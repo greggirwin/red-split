@@ -15,29 +15,61 @@ can do evidence based language design.
 
 ---
 
+# Goals and plan
+
 First we need to clear up purpose for the design.
+
 Then we need clear presentation of the alternatives of design.
-And finally we should estimate how well do alternative design decisions serve the stated purpose.
 
-Purpose of splitting
-Abstract-theoretically splitting should enable breaking any series into chunks according to any criteria appropriate for given series.
-Practically it should, according to Red philosophy, make common cases of splitting easy and all cases possible.
+And finally we should estimate how well do alternative design decisions
+serve the stated purpose.
 
-My idea of specifics:
-Splitting should occur according to delimiter, which may determine value on which to split and/or position where to split. Value can be given literally, by pattern (type, alternatives or sequence or hierarchy of delimiter values) and dynamically with function. Position can be determined by size of chunks, number of chunks or dynamically with function returning next splitting position in series. By default splitting should break whole series by given delimiter permissively, i.e. allowing partial matches (reminder/rest) to be included. Further, partial (aka limited) splitting should be supported, so as to split limited number of times, still including reminder in result. Finally restricted splitting should be supported, returning only requested number of chunks and/or excluding empty chunks, and ignoring reminder.
+## Purpose of splitting
 
-Alternative designs
+Abstract-theoretically splitting should enable breaking any series into
+chunks according to any criteria appropriate for given series.
 
-Several specialized functions and dialected split making use of these. (Currently there are following specialized functions: partition (or group - IMO it should be separated from this split-bundle), split-into-N-parts, split-fixed-parts, split-var-parts, split-at-index, split-once, and split-ctx/split-delimited with refinements.)
+Practically it should, according to Red philosophy, make common cases of
+splitting easy and all cases possible.
+
+## My (ToomasV's) idea of specifics:
+
+Splitting should occur according to delimiter, which may determine value
+on which to split and/or position where to split. Value can be given
+literally, by pattern (type, alternatives or sequence or hierarchy of
+delimiter values) and dynamically with function. Position can be
+determined by size of chunks, number of chunks or dynamically with
+function returning next splitting position in series. By default
+splitting should break whole series by given delimiter permissively,
+i.e. allowing partial matches (reminder/rest) to be included. Further,
+partial (aka limited) splitting should be supported, so as to split
+limited number of times, still including reminder in result. Finally
+restricted splitting should be supported, returning only requested
+number of chunks and/or excluding empty chunks, and ignoring reminder.
+
+## Alternative designs
+
+Several specialized functions and dialected split making use of these.
+(Currently there are following specialized functions: partition (or
+group - IMO it should be separated from this split-bundle), split-into-
+N-parts, split-fixed-parts, split-var-parts, split-at-index, split-once,
+and split-ctx/split-delimited with refinements.)
 
 Single split with refinements and dialect.
 
-Evaluation
-This will need more playing, and implementation of %practice-split-r.red, but my preference is for (2).
+## Evaluation
 
-Specialized functions can probably be implemented more efficiently, but to be pliable, they should include possibility of limited and restricted splitting. They also cause a little "explosion" of supportive functions with long multi-part names.
+This will need more playing, and implementation of %practice-split-
+r.red.
 
-Single split with refinements avoids explosion of specialized functions, is more Red-like, but probably less efficient than specialized single-purpose functions.
+Specialized functions can probably be implemented more efficiently, but
+to be pliable, they should include possibility of limited and restricted
+splitting. They also cause a little "explosion" of supportive functions
+with long multi-part names.
+
+Single split with refinements avoids explosion of specialized functions,
+is more Red-like, but probably less efficient than specialized single-
+purpose functions.
 
 ---
 
