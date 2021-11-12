@@ -1,6 +1,6 @@
 # Split in some programming languages
 
-<table><tr><th>language</th><th>function/s</th></tr>
+<table><tr><th>language</th><th>functions / methods</th></tr>
 <tr><td><a href="https://doc.rust-lang.org/stable/std/primitive.str.html#method.split">Rust</a></td><td>split<br />split_ascii_whitespace<br/>split_at<br/>split_at_mut<br/>split_inclusive<br/>split_once<br/>split_terminator<br/>split_whitespace<br/>splitn<br/>rsplit<br/>rsplit_once<br/>rsplit_terminator<br/>rsplitn</td></tr>
 <tr><td><a href="https://docs.python.org/3.10/genindex-S.html">Python</a></td><td>split([separator [maxsplit]])<br />rsplit([separator [maxsplit]])<br />splitlines([keepends])<br />bytes.split(sep=None, maxsplit=- 1)<br />bytearray.split(sep=None, maxsplit=- 1)</td></tr>
 <tr><td><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/split">JavaScript</a>, <a href="https://tc39.es/ecma262/multipage/text-processing.html#sec-string.prototype.split">ECMAScript</a></td><td>split([separator [limit]])</td></tr>
