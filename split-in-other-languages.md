@@ -7,43 +7,6 @@
     <tr><td><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/split">JavaScript</a>, <a href="https://tc39.es/ecma262/multipage/text-processing.html#sec-string.prototype.split">ECMAScript</a></td><td>split([separator [limit]])</td></tr>
     <tr><td><a href="https://pkg.go.dev/strings@go1.17.3">Go</a></td><td>Split<br />SplitN<br />SplitAfter<br />SplitAfterN<br />Fields<br />FieldsFunc<br />re.split</td></tr>
     <tr><td><a href="https://search.wolfram.com/?query=split&source=GUIHeader">Wolfram</a></td><td>StringSplit["string"] (splits "string" into a list of substrings separated by whitespace.)<br />StringSplit["string",patt] (splits into substrings separated by delimiters matching the string expression patt.)<br />StringSplit["string",{p1,p2,…}] (splits at any of the p(i).)<br />StringSplit["string",patt->val] (inserts val at the position of each delimiter.)<br />StringSplit["string",{p1->v1,…}] (inserts v(i) at the position of each delimiter p(i).)<br />StringSplit["string",patt,n] (splits into at most n substrings.)<br />StringSplit[{s1,s2,…},p] (gives the list of results for each of the s(i).)</td></tr>
-
-    <tr>
-        <td><a href="https://docs.microsoft.com/en-us/dotnet/api/system.string.split?view=net-5.0">.NET</a></td>
-        <td>
-            Split(Char, Int32, StringSplitOptions)	
-            Splits a string into a maximum number of substrings based on a specified delimiting character and, optionally, options. Splits a string into a maximum number of substrings based on the provided character separator, optionally omitting empty substrings from the result.
-            <br />
-            Split(String[], Int32, StringSplitOptions)	
-            Splits a string into a maximum number of substrings based on specified delimiting strings and, optionally, options.
-            <br />
-            Split(Char[], Int32, StringSplitOptions)	
-            Splits a string into a maximum number of substrings based on specified delimiting characters and, optionally, options.
-            <br />
-            Split(String[], StringSplitOptions)	
-            Splits a string into substrings based on a specified delimiting string and, optionally, options.
-            <br />
-            Split(String, Int32, StringSplitOptions)	
-            Splits a string into a maximum number of substrings based on a specified delimiting string and, optionally, options.
-            <br />
-            Split(Char[], StringSplitOptions)	
-            Splits a string into substrings based on specified delimiting characters and options.
-            <br />
-            Split(Char[], Int32)	
-            Splits a string into a maximum number of substrings based on specified delimiting characters.
-            <br />
-            Split(Char, StringSplitOptions)	
-            Splits a string into substrings based on a specified delimiting character and, optionally, options.
-            <br />
-            Split(String, StringSplitOptions)	
-            Splits a string into substrings that are based on the provided string separator.
-            <br />
-            Split(Char[])	
-            Splits a string into substrings based on specified delimiting characters.
-            <br />
-            See also: https://docs.microsoft.com/en-us/dotnet/api/system.stringsplitoptions?view=net-5.0
-        </td>
-    </tr>
-        
+    <tr><td><a href="https://docs.microsoft.com/en-us/dotnet/api/system.string.split?view=net-5.0">.NET</a></td><td>Split(Char, Int32, StringSplitOptions) Splits a string into a maximum number of substrings based on a specified delimiting character and, optionally, options. Splits a string into a maximum number of substrings based on the provided character separator, optionally omitting empty substrings from the result. <br /> Split(String[], Int32, StringSplitOptions) Splits a string into a maximum number of substrings based on specified delimiting strings and, optionally, options. <br /> Split(Char[], Int32, StringSplitOptions) Splits a string into a maximum number of substrings based on specified delimiting characters and, optionally, options. <br /> Split(String[], StringSplitOptions) Splits a string into substrings based on a specified delimiting string and, optionally, options. <br /> Split(String, Int32, StringSplitOptions) Splits a string into a maximum number of substrings based on a specified delimiting string and, optionally, options. <br /> Split(Char[], StringSplitOptions) Splits a string into substrings based on specified delimiting characters and options. <br /> Split(Char[], Int32) Splits a string into a maximum number of substrings based on specified delimiting characters. <br /> Split(Char, StringSplitOptions) Splits a string into substrings based on a specified delimiting character and, optionally, options. <br /> Split(String, StringSplitOptions) Splits a string into substrings that are based on the provided string separator. <br /> Split(Char[]) Splits a string into substrings based on specified delimiting characters. <br /> See also: https://docs.microsoft.com/en-us/dotnet/api/system.stringsplitoptions?view=net-5.0</td></tr>
 </table>
 
