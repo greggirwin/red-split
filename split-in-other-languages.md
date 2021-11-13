@@ -80,6 +80,12 @@ The slice returned by this method consists of all the substrings of s not contai
     <tr><td>ResourceFunction["StringSplitBefore"]["string",patt->val]</td><td>Replaces each delimiter matching patt with val.</td></tr>
     <tr><td>ResourceFunction["StringSplitBefore"]["string",{p1->v1,…}]</td><td>Replaces each delimiter matching p(i) with v(i).</td></tr>
     <tr><td>ResourceFunction["StringSplitBefore"][{s1,s2,…},p]</td><td>Gives the list of results for each of the s(i).</td></tr>
+    <tr><td>ResourceFunction["SplitWhen"][list,f]</td><td>Splits list into sublists, splitting after each ei for which f[ei] is True.</td></tr>
+    <tr><td>ResourceFunction["SplitByPatterns"][list,{patt1,patt2,…}]</td><td>Splits list into sublists consisting of runs of successive elements that match the same patti.</td></tr>
+    <tr><td>ResourceFunction["RandomSplit"][list,n]</td><td>Randomly cuts list into n segments.</td></tr>
+    <tr><td>ResourceFunction["RandomSplit"][n]</td><td>Represents an operator form of ResourceFunction["RandomSplit"] that can be applied to an expression.</td></tr>
+    <tr><td>ResourceFunction["TrainTestSplit"][data]</td><td>Splits data into a pair of shuffled training and testing sets.</td></tr>
+    <tr><td>VideoSplit, AudioSplit, ImageSplitCompare...</td><td></td></tr>
     <tr><th colspan="2"><a href="https://docs.microsoft.com/en-us/dotnet/api/system.string.split?view=net-5.0">.NET</a></th></tr>
     <tr><td>Split(Char, Int32, StringSplitOptions)</td><td>Splits a string into a maximum number of substrings based on a specified delimiting character and, optionally, options. Splits a string into a maximum number of substrings based on the provided character separator, optionally omitting empty substrings from the result.</td></tr>
     <tr><td>Split(String[], Int32, StringSplitOptions)</td><td>Splits a string into a maximum number of substrings based on specified delimiting strings and, optionally, options.</td></tr>
