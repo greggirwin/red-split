@@ -30,13 +30,23 @@ The two slices returned go from the start of the string slice to mid, and from m
     <tr><th colspan="2"><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/split">JavaScript</a>, <a href="https://tc39.es/ecma262/multipage/text-processing.html#sec-string.prototype.split">ECMAScript</a></th></tr>
     <tr><td>split([separator [limit]])</td><td></td></tr>
     <tr><th colspan="2"><a href="https://pkg.go.dev/strings@go1.17.3">Go</a></th></tr>
-    <tr><td>Split</td><td></td></tr>
-    <tr><td>SplitN</td><td></td></tr>
-    <tr><td>SplitAfter</td><td></td></tr>
-    <tr><td>SplitAfterN</td><td></td></tr>
-    <tr><td>Fields</td><td></td></tr>
-    <tr><td>FieldsFunc</td><td></td></tr>
-    <tr><td>re.split</td><td></td></tr>
+    <tr><td>Split(s, sep)</td><td>Slices s into all substrings separated by sep and returns a slice of the substrings between those separators.
+If s does not contain sep and sep is not empty, Split returns a slice of length 1 whose only element is s.
+If sep is empty, Split splits after each UTF-8 sequence. If both s and sep are empty, Split returns an empty slice.
+It is equivalent to SplitN with a count of -1. </td></tr>
+    <tr><td>SplitN(s, sep, n)</td><td>Slices s into substrings separated by sep and returns a slice of the substrings between those separators.
+The count determines the number of substrings to return</td></tr>
+    <tr><td>SplitAfter(s, sep)</td><td>Slices s into all substrings after each instance of sep and returns a slice of those substrings.
+If s does not contain sep and sep is not empty, SplitAfter returns a slice of length 1 whose only element is s.
+If sep is empty, SplitAfter splits after each UTF-8 sequence. If both s and sep are empty, SplitAfter returns an empty slice.
+It is equivalent to SplitAfterN with a count of -1. </td></tr>
+    <tr><td>SplitAfterN(s, sep, n)</td><td>Slices s into substrings after each instance of sep and returns a slice of those substrings.
+The count determines the number of substrings to return</td></tr>
+    <tr><td>Fields(s)</td><td>Splits the string s around each instance of one or more consecutive white space characters, as defined by unicode.IsSpace, returning a slice of substrings of s or an empty slice if s contains only white space. </td></tr>
+    <tr><td>FieldsFunc(s, f)</td><td>Splits the string s at each run of Unicode code points c satisfying f(c) and returns an array of slices of s. If all code points in s satisfy f(c) or the string is empty, an empty slice is returned.
+FieldsFunc makes no guarantees about the order in which it calls f(c) and assumes that f always returns the same value for a given c. </td></tr>
+    <tr><td>re.split(s, n)</td><td>Slices s into substrings separated by the expression and returns a slice of the substrings between those expression matches.
+The slice returned by this method consists of all the substrings of s not contained in the slice returned by FindAllString. When called on an expression that contains no metacharacters, it is equivalent to strings.SplitN. </td></tr>
     <tr><th colspan="2"><a href="https://search.wolfram.com/?query=split&source=GUIHeader">Wolfram</a></th></tr>
     <tr><td>StringSplit["string"]</td><td>Splits "string" into a list of substrings separated by whitespace.</td></tr>
     <tr><td>StringSplit["string",patt]</td><td>Splits into substrings separated by delimiters matching the string expression patt.</td></tr>
