@@ -55,6 +55,31 @@ The slice returned by this method consists of all the substrings of s not contai
     <tr><td>StringSplit["string",{p1->v1,…}]</td><td>Inserts v(i) at the position of each delimiter p(i).</td></tr>
     <tr><td>StringSplit["string",patt,n]</td><td>Splits into at most n substrings.</td></tr>
     <tr><td>StringSplit[{s1,s2,…},p]</td><td>Gives the list of results for each of the s(i).</td></tr>
+    <tr><td>SplitBy[list,f]</td><td>Splits list into sublists consisting of runs of successive elements that give the same value when f is applied.</td></tr>
+    <tr><td>SplitBy[list,{f1,f2,…}]</td><td>Recursively splits list into sublists by testing elements successively with each of the f(i).</td></tr>
+    <tr><td colspan=2>Notes:<br />
+        SplitBy[list,…] <i>splits but does not rearrange list.</i><br />
+        SplitBy <i>performs comparisons only on adjacent pairs of elements.</i><br />
+        SplitBy[list] <i>is equivalent to SplitBy[list,Identity], which is also equivalent to Split[list].</i><br />
+        SplitBy[list,{f1,f2}] <i>is equivalent to Map[SplitBy[#,f2]&,SplitBy[list,f1]].</i></td></tr>
+    <tr><td>Split[list]</td><td>Splits list into sublists consisting of runs of identical elements.</td></tr>
+    <tr><td>Split[list,test]</td><td>Treats pairs of adjacent elements as identical whenever applying the function test to them yields True.</td></tr>
+    <tr><td>SequenceSplit[list,patt]</td><td>Splits list into sublists separated by sequences that match the sequence pattern patt. By default gives the list of sublists of list that occur between sequences defined by patt; it does not include the sequences themselves.</td></tr>
+    <tr><td>SequenceSplit[list,patt->rhs]</td><td>Inserts rhs at the position of each matched sequence.</td></tr>
+    <tr><td>SequenceSplit[list,{patt1->rhs1,…}]</td><td>Inserts rhs(i) at the position of each patt(i). (SequenceSplit[list,{patt(1)->rhs(1),…,patt(a),…}] includes rhs(i) at the position of sequences matching patt(1) but omits sequences matching patt(a).)</td></tr>
+    <tr><td>SequenceSplit[list,patt,n]</td><td>Splits into at most n sublists.</td></tr>
+    <tr><td>ResourceFunction["StringSplitAfter"]["string"]</td><td>Splits "string" into a list of substrings after each whitespace.</td></tr>
+    <tr><td>ResourceFunction["StringSplitAfter"]["string",patt]</td><td>Splits "string" into substrings after delimiters matching the string expression patt.</td></tr>
+    <tr><td>ResourceFunction["StringSplitAfter"]["string",{p1,p2,…}]</td><td>Splits "string" after any of the p(i).</td></tr>
+    <tr><td>ResourceFunction["StringSplitAfter"]["string",patt->val]</td><td>Replaces each delimiter matching patt with val.</td></tr>
+    <tr><td>ResourceFunction["StringSplitAfter"]["string",{p1->v1,…}]</td><td>Replaces each delimiter matching p(i) with v(i).</td></tr>
+    <tr><td>ResourceFunction["StringSplitAfter"][{s1,s2,…},p]</td><td>Gives the list of results for each of the s(i).</td></tr>
+    <tr><td>ResourceFunction["StringSplitBefore"]["string"]</td><td>Splits "string" into a list of substrings before each whitespace.</td></tr>
+    <tr><td>ResourceFunction["StringSplitBefore"]["string",patt]</td><td>Splits "string" into substrings before delimiters matching the string expression patt.</td></tr>
+    <tr><td>ResourceFunction["StringSplitBefore"]["string",{p1,p2,…}]</td><td>Splits "string" before any of the p(i).</td></tr>
+    <tr><td>ResourceFunction["StringSplitBefore"]["string",patt->val]</td><td>Replaces each delimiter matching patt with val.</td></tr>
+    <tr><td>ResourceFunction["StringSplitBefore"]["string",{p1->v1,…}]</td><td>Replaces each delimiter matching p(i) with v(i).</td></tr>
+    <tr><td>ResourceFunction["StringSplitBefore"][{s1,s2,…},p]</td><td>Gives the list of results for each of the s(i).</td></tr>
     <tr><th colspan="2"><a href="https://docs.microsoft.com/en-us/dotnet/api/system.string.split?view=net-5.0">.NET</a></th></tr>
     <tr><td>Split(Char, Int32, StringSplitOptions)</td><td>Splits a string into a maximum number of substrings based on a specified delimiting character and, optionally, options. Splits a string into a maximum number of substrings based on the provided character separator, optionally omitting empty substrings from the result.</td></tr>
     <tr><td>Split(String[], Int32, StringSplitOptions)</td><td>Splits a string into a maximum number of substrings based on specified delimiting strings and, optionally, options.</td></tr>
