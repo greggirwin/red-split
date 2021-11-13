@@ -28,7 +28,7 @@ The two slices returned go from the start of the string slice to mid, and from m
     <tr><td>bytes.split(sep=None, maxsplit=- 1)</td><td></td></tr>
     <tr><td>bytearray.split(sep=None, maxsplit=- 1)</td><td></td></tr>
     <tr><th colspan="2"><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/split">JavaScript</a>, <a href="https://tc39.es/ecma262/multipage/text-processing.html#sec-string.prototype.split">ECMAScript</a></th></tr>
-    <tr><td>split([separator [limit]])</td><td></td></tr>
+    <tr><td>split([separator [limit]])</td><td>Divides a String into an ordered list of substrings, puts these substrings into an array, and returns the array.  The division is done by searching for a pattern; where the pattern is provided as the first parameter in the method's call. When found, separator is removed from the string, and the substrings are returned in an array. If separator is a regular expression with capturing parentheses, then each time separator matches, the results (including any undefined results) of the capturing parentheses are spliced into the output array. If the separator is an array, then that Array is coerced to a String and used as a separator. </td></tr>
     <tr><th colspan="2"><a href="https://pkg.go.dev/strings@go1.17.3">Go</a></th></tr>
     <tr><td>Split(s, sep)</td><td>Slices s into all substrings separated by sep and returns a slice of the substrings between those separators.
 If s does not contain sep and sep is not empty, Split returns a slice of length 1 whose only element is s.
