@@ -376,6 +376,92 @@ Encoding). In Red we can do that at the value level, not just byte
 level.
 
 
+
+# Confidence Ratings
+
+Each function is given confidence ratings, based on its design and
+implementation. Overall confidence is their average.
+
+A baseline confidence of 8/10 means a function is good enough to be
+included in a release. Notes about other reasons to exclude functions
+may also be made. For example, a function may be good enough technically
+but its purpose doesn't justify inclusion. Inclusion also doesn't mean
+the function is design or code complete, just that it's good enough for
+comment, even if changes are pending based on existing discussion.
+
+The goal here is to help prioritize work and do an initial release of
+some functionality for user feedback and testing.
+
+
+|         Function         | Design | Code | Purpose | Overall | Notes |
+|--------------------------|--------|------|---------|---------|-------|
+| Split (dialected)        | ?/10   | ?/10 | ?/10    | ?/10    |       |
+| split-r                  | ?/10   | ?/10 | ?/10    | ?/10    |       |
+| split-r-v2               | ?/10   | ?/10 | ?/10    | ?/10    |       |
+| split-r-v3               | ?/10   | ?/10 | ?/10    | ?/10    |       |
+|                          |        |      |         |         |       |
+| split-into-N-parts       | ?/10   | ?/10 | ?/10    | ?/10    |       |
+| split-fixed-parts        | ?/10   | ?/10 | ?/10    | ?/10    |       |
+| split-var-parts          | ?/10   | ?/10 | ?/10    | ?/10    |       |
+| split-at-index           | ?/10   | ?/10 | ?/10    | ?/10    |       |
+| split-once               | ?/10   | ?/10 | ?/10    | ?/10    |       |
+| split-deliimited         | ?/10   | ?/10 | ?/10    | ?/10    |       |
+| partition/group          | ?/10   | ?/10 | ?/10    | ?/10    | HOF `filter` |
+| split-image              | ?/10   | ?/10 | ?/10    | ?/10    |       |
+| 2D data split            | ?/10   | ?/10 | ?/10    | ?/10    |       |
+|                          |        |      |         |         |       |
+|                          |        |      |         |         |       |
+|                          |        |      |         |         |       |
+|                          |        |      |         |         |       |
+
+# Priorities
+
+Prior. = Priority for inclusion
+Uses = Use cases (should list if using a number of examples)
+Purpose and Overall may be removed here
+
+Not all options apply to all splitting types. For example, `case` and
+`around` make no sense for size-based/offset-based splitting. `Reverse`
+with `last` is just a confusing way to express a sensible default of
+splitting at the first.
+
+`Once` is technically a special case of `N Times` but may 
+
+|         Option           | Prior. | Uses | Purpose | Overall | Notes |
+|--------------------------|--------|------|---------|---------|-------|
+| Delimited                |        |      |         |         |       |
+| N Parts                  |        |      |         |         |       |
+| Fixed Parts              |        |      |         |         |       |
+| Variable Sized Parts     |        |      |         |         |       |
+| At Index                 |        |      |         |         |       |
+| Once                     |        |      |         |         |       |
+| N Times (Limit)          |        |      |         |         |       |
+| Parse Rule               |        |      |         |         |       |
+| Partition/Group          |        |      |         |         |       |
+|                          |        |      |         |         |       |
+|                          |        |      |         |         |       |
+|                          |        |      |         |         |       |
+|                          |        |      |         |         |       |
+| case sensitive           |        |      |         |         |       |
+| before                   |        |      |         |         |       |
+| after                    |        |      |         |         |       |
+| keep delim (around)      |        |      |         |         |       |
+| first                    |        |      |         |         | Default, with `last` overriding |
+| last                     |        |      |         |         |       |
+| Nth                      |        |      |         |         |       |
+| reverse/tail             |        |      |         |         |       |
+| only                     |        |      |         |         |       |
+| quoted/as-delim          |        |      |         |         |       |
+| each                     |        |      |         |         |       |
+| keep empty values        |        |      |         |         |       |
+| Nested (2 levels)        |        |      |         |         |       |
+| Nested (> 2 levels)      |        |      |         |         |       |
+|                          |        |      |         |         |       |
+|                          |        |      |         |         |       |
+|                          |        |      |         |         |       |
+|                          |        |      |         |         |       |
+
+
 -----------------------------------------------------------------------
 
 # General Design Thoughts
