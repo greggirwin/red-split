@@ -11,7 +11,7 @@ context [
 	around:            func [s item][any [find/match/tail s item  find s item]]
 	around-case:       func [s item][any [find/case/match/tail s item  find/case s item]]
 	around-only:       func [s item][any [find/only/match/tail s item  find/only s item]]
-	around-case-case:  func [s item][any [find/case/only/match/tail s item	find/case/only s item]]
+	around-case-only:  func [s item][any [find/case/only/match/tail s item	find/case/only s item]]
 	default:           func [s item][find s item]
 	default-case:      func [s item][find/case s item]
 	default-only:      func [s item][find/only s item]
