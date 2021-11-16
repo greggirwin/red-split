@@ -416,8 +416,8 @@ some functionality for user feedback and testing.
 
 # Priorities
 
-Prior. = Priority for inclusion
-Uses = Use cases (should list if using a number of examples)
+Prior. = Priority for inclusion  
+Uses = Use cases (should list if using a number of examples)  
 Purpose and Overall may be removed here
 
 Not all options apply to all splitting types. For example, `case` and
@@ -429,7 +429,7 @@ splitting at the first.
 
 |         Option           | Prior. | Uses | Purpose | Overall | Notes |
 |--------------------------|--------|------|---------|---------|-------|
-| Delimited                |        |      |         |         |       |
+| Delimited                | [tv 1] |      |         |         |       |
 | N Parts                  |        |      |         |         |       |
 | Fixed Parts              |        |      |         |         |       |
 | Variable Sized Parts     |        |      |         |         |       |
