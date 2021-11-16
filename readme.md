@@ -430,32 +430,32 @@ splitting at the first.
 |         Option           | Prior. | Uses | Purpose | Overall | Notes |
 |--------------------------|--------|------|---------|---------|-------|
 | Delimited                | [tv 1] |      |         |         |       |
-| N Parts                  |        |      |         |         |       |
-| Fixed Parts              |        |      |         |         |       |
-| Variable Sized Parts     |        |      |         |         |       |
-| At Index                 |        |      |         |         |       |
-| Once                     |        |      |         |         |       |
-| N Times (Limit)          |        |      |         |         |       |
-| Parse Rule               |        |      |         |         |       |
-| Partition/Group          |        |      |         |         |       |
+| N Parts                  | [tv 3] |      |         |         |       |
+| Fixed Parts              | [tv 2] |      |         |         |       |
+| Variable Sized Parts     | [tv 2] |      |         |         |       |
+| At Index                 |        |      |         |         | [tv: /limit .. 1] |
+| Once                     |        |      |         |         | [tv: /trim/limit .. 1] |
+| N Times (Limit)          | [tv 2] |      |         |         |       |
+| Parse Rule               | [tv 3] |      |         |         |       |
+| Partition/Group          |        |      |         |         | [tv: should be different func] |
 |                          |        |      |         |         |       |
 |                          |        |      |         |         |       |
 |                          |        |      |         |         |       |
 |                          |        |      |         |         |       |
-| case sensitive           |        |      |         |         |       |
-| before                   |        |      |         |         |       |
-| after                    |        |      |         |         |       |
-| keep delim (around)      |        |      |         |         |       |
-| first                    |        |      |         |         | Default, with `last` overriding |
-| last                     |        |      |         |         |       |
-| Nth                      |        |      |         |         |       |
-| reverse/tail             |        |      |         |         |       |
-| only                     |        |      |         |         |       |
-| quoted/as-delim          |        |      |         |         |       |
-| each                     |        |      |         |         |       |
-| keep empty values        |        |      |         |         |       |
-| Nested (2 levels)        |        |      |         |         |       |
-| Nested (> 2 levels)      |        |      |         |         |       |
+| case sensitive           | [tv 3] |      |         |         |       |
+| before                   | [tv 2] |      |         |         |       |
+| after                    | [tv 2] |      |         |         |       |
+| keep delim (around)      | [tv 3] |      |         |         |       |
+| first                    |        |      |         |         | Default, with `last` overriding [tv: /limit .. 1] |
+| last                     |        |      |         |         | [tv: /limit .. -1] |
+| Nth                      |        |      |         |         | [tv: last split/limit .. n] |
+| reverse/tail             | [tv 4] |      |         |         |       |
+| only                     |        |      |         |         | [tv: in what meaning - treat arg as block?] |
+| quoted/as-delim          |        |      |         |         | [tv: /quoted is meaningful only for parse-based; /as-is is alias for /case; /case, /before, /after, /around imply as-is  for nums] |
+| each                     | [tv 2] |      |         |         | [tv: if meant as - interpret block as alternatives] |
+| keep empty values        | [tv 3] |      |         |         |       |
+| Nested (2 levels)        | [tv 2] |      |         |         |       |
+| Nested (> 2 levels)      | [tv 4] |      |         |         |       |
 |                          |        |      |         |         |       |
 |                          |        |      |         |         |       |
 |                          |        |      |         |         |       |
