@@ -103,4 +103,17 @@ The slice returned by this method consists of all the substrings of s not contai
     <tr><th colspan="2"><a href="https://docs.oracle.com/javase/7/docs/api/java/lang/String.html">Java</a></th></tr>
     <tr><td>split(String regex)</td><td>Splits this string around matches of the given regular expression.</td></tr>
     <tr><td>split(String regex, int limit)</td><td>Splits this string around matches of the given regular expression.</td></tr>
+    <tr><th colspan="2"><a href="https://docs.racket-lang.org/reference/pairs.html#%28def._%28%28lib._racket%2Flist..rkt%29._splitf-at">Racket</a></th></tr>
+    <tr><td>(split-at lst pos) → list? any/c </br> lst : any/c </br> pos : exact-nonnegative-integer?</td><td>Splits a list at position.</br> Returns the same result as (values (take lst pos) (drop lst pos))</br>except that it can be faster, but it will still take time proportional to pos.</td></tr>
+    <tr><td>(splitf-at lst pred) → list? any/c</br>lst : any/c</br> pred : procedure?
+</td><td> Splits a list by predicate.</br>Returns the same result as (values (takef lst pred) (dropf lst pred)) except that it can be faster.</td></tr>
+    <tr><td>(split-at-right lst pos) → list? any/c</br>lst : any/c</br>pos : exact-nonnegative-integer?
+</td><td> Splits a list at position from the end.</br>Returns the same result as (values (drop-right lst pos) (take-right lst pos)) except that it can be faster, but it will still take time proportional to the length of lst.
+</td></tr>
+    <tr><td>(splitf-at-right lst pred) → list? any/c</br>lst : any/c</br>pred : procedure?
+</td><td> Like takef, dropf, and splitf-at, but combined with the from-right functionality of take-right, drop-right, and split-at-right.
+</td></tr>
+    <tr><td>(split-common-prefix l r [same?]) → list? list? list?</br>l : list?</br>r : list?</br>same? : (any/c any/c . -> . any/c) = equal?
+</td><td> Returns the longest common prefix together with the tails of l and r with the common prefix removed.</br>Example:</br>(split-common-prefix '(a b c d) '(a b x y z))</br>'(a b)</br>'(c d)</br>'(x y z)
+</td></tr>
 </table>
