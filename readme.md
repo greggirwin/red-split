@@ -101,6 +101,7 @@ vs `skip` and `position` vs `index` in general docs for series related
 
 ## Dialected
 
+```
   USAGE:
      SPLIT series dlm
 
@@ -114,9 +115,11 @@ vs `skip` and `position` vs `index` in general docs for series related
      series [series!] "The series to split."
      dlm    {Dialected rule (block), part size (integer), predicate (function),
              or separator.}
+```
 
 ## Refinement based
 
+```
   USAGE:
      SPLIT-R series delimiter
 
@@ -145,7 +148,7 @@ vs `skip` and `position` vs `index` in general docs for series related
      /with        => Add options in block.
         options      [block!] 
      /case        => 
-
+```
 
 # Types of Splitting
 
@@ -167,7 +170,7 @@ vs `skip` and `position` vs `index` in general docs for series related
 <Using Advanced Rules>(#Split Using Advanced Rules)
 
 
-===Split By Delimiter
+## Split By Delimiter
 
 Delimited data is a well known format, using a <delimiter>(https://en.wikipedia.org/wiki/Delimiter)
 to indicate where one thing stops and the next thing starts. 
@@ -192,13 +195,13 @@ the input and characters (sometimes strings), as the separator. This
 makes sense, but is <short-sighted>(#FutureThought) for Red.
 
 
-===Split Once
+## Split Once
 
 Split just once, giving two parts. The data may be marked by a 
 delimiting value, or by the size of the either the first or last
 part.
 
-===Split Into Equal Parts
+## Split Into Equal Parts
 
 Use cases:
 
@@ -223,7 +226,7 @@ Only last shorter: [gregg]
 leveled:           []
 
 
-===Split Into N Parts
+## Split Into N Parts
 
 Use cases:
 
@@ -246,7 +249,7 @@ leveled:          [gregg]
 
 
 
-===Split Into Uneven Parts
+## Split Into Uneven Parts
 
 *Small Fixed Values:* _YYYYMMDD_ into _\[YYYY MM DD\]_, or 
 _Mon, 24 Nov 1997_ into \["Mon" "24" "Nov" "1997"\].
@@ -267,7 +270,7 @@ once:   []
 repeat: [toomas gregg boris jose galen]
 
 
-===Split Up To N Times
+## Split Up To N Times
 
 When you want to split more than once, but less than every time. This
 can be useful if you want to check individual parts, and not split
@@ -279,7 +282,7 @@ This is a refinement to other splitting options, for how many times
 to apply them. It is not a standalone algorithm.
 
 
-# Split by Test Predicates
+## Split by Test Predicates
 
 Partition data into groups based on one or more tests.
 
@@ -293,7 +296,7 @@ values, or by type, so you can send each to a specific handler.
 
 Design questions:
 
-## Name
+### Name
 
 NAME: [
     partition []
@@ -307,7 +310,7 @@ separate?
 part of split: [gregg]
 separate:      []
 
-## Should predicates be treated by as group filters or delimiters?
+### Should predicates be treated by as group filters or delimiters?
 
 group: [gregg]
 delim: [toomas]
@@ -330,7 +333,7 @@ Or
     split/group "a,b.c,d." [comma dot]
     ;== [["a" "b"] ["c" "d"] []]
 
-## Should predicate funcs take one or two args (value or [value series])?
+### Should predicate funcs take one or two args (value or [value series])?
 
 This same question applies to the `map` HOF, which Gregg has done
 experimentally with multiple args.
@@ -339,7 +342,7 @@ one: []
 two: []
 
 
-===Split Using Advanced Rules
+## Split Using Advanced Rules
 
 Think *parse+collect*.
 
@@ -355,10 +358,10 @@ https://gitter.im/red/split?at=618832c5cd4972068b93b1c4
 
 
 
-# 2D splitting and splitting images
+## 2D splitting and splitting images
 
 
-# Group runs, monotonic split.
+## Group runs, monotonic split.
 
 Collect items into groups based on the change in values in the series
 or matching of a predicate function per Toomas' idea of binary (arity 2)
@@ -374,6 +377,8 @@ outside split (group-runs). I think it was @GalenIvanov I chatted to
 about it recently, noting that it can be used for RLE (Run Length
 Encoding). In Red we can do that at the value level, not just byte
 level.
+
+## Split out matching prefix
 
 
 
@@ -438,6 +443,8 @@ splitting at the first.
 | N Times (Limit)          | [tv 2] |      |         |         |       |
 | Parse Rule               | [tv 3] |      |         |         |       |
 | Partition/Group          |        |      |         |         | [tv: should be different func] |
+| split-image              |        |      |         |         |       |
+| 2D data split            |        |      |         |         |       |
 |                          |        |      |         |         |       |
 |                          |        |      |         |         |       |
 |                          |        |      |         |         |       |
@@ -540,6 +547,8 @@ https://gitter.im/red/split?at=6186b8ab9d20982e4f04b5f7
 ## Misc
 
 Gregg's thoughts on dialect vs refinements. https://gitter.im/red/split?at=6186c5167db1e3753e863ba6
+
+More from Gregg: https://gitter.im/red/split?at=61969e2263c1e83c9516fa70
 
 
 
