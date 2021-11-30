@@ -15,10 +15,10 @@ SPLIT features and examples
 | at `[first \| last]` delimiter   | `split series [first 'x]`                 | `split/first series 'x`               |                             |
 |                                  | `split series [last (integer!)]`          | `split/last series integer!`          |                             |
 | with fuzzy delimiters            | `split series [any space comma]`          | `split/rule series [any space comma]` |                             |
-| with alternative delimiters      | `split series ['a | 'b]`                  | `split/rule series ['a | 'b]`         |                             |
+| with alternative delimiters      | `split series ['a \| 'b]`                 | `split/rule series ['a \| 'b]`        |                             |
 | by two levels                    | `split series [first by "," then by " "]` | `split/groups series [" " ","]`       |                             |
 | by raw delimiter                 | `split series [as-delim 3]`               | `split/value series 3`                |                             |
-| by function                      | `split series :fn`     ;(partition)       | `split series :fn`   ;(split at true) |                             |
+| by function                      | `split series :fn`     (partition)        | `split series :fn`   (split at true)  |                             |
 |                                  |                                           |                                       |                             |
 | **PROPOSALS / IDEAS**            |                                           |                                       |                             |
 | before and after each delimiter  |                                           | `split/around series "1"`             |                             |
