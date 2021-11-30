@@ -304,8 +304,7 @@ NAME: [
     filter    []
 ]
 
-## Should it be accessible via the `split` entry point or completely
-separate?
+## Should it be accessible via the `split` entry point or completely separate?
 
 part of split: [gregg]
 separate:      []

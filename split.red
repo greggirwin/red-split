@@ -212,6 +212,40 @@ split-into-N-parts: function [
 ;]
 
 
+; @Toomasv, based on @hiiamboris' distribution logic
+part-sizes: function [
+	total [integer!] "Total length of, e.g., series to split."
+	parts [integer!] "Number of parts to split total into, using a balanced distribution"
+][
+    m: total / parts
+    s: 0 
+    sizes: collect [
+        repeat i parts [
+            idx: round/to i * m 1 
+            keep idx - s 
+            s: idx
+		]
+	]
+]
+split-into-N-parts: function [
+	"Split series into parts using a balanced distribution."
+	series [series!]
+	parts  [integer!]
+][
+	if parts < 1 [cause-error 'Script 'invalid-arg parts]
+	if parts = 1 [return copy series]
+
+	sizes: part-sizes length? series parts
+	res: make block! length? sizes
+	collect/into [
+		foreach size sizes [
+			keep/only copy/part series size
+			series: skip series size
+		]
+	] res
+]
+
+
 split-fixed-parts: function [
 	"If the series can't be evenly split, the last value will be shorter"
 	series [series!]  "The series to split"
@@ -268,6 +302,26 @@ split-var-parts: function [
 		]
 	]
 ]
+split-var-parts: function [
+	"Split a series into variable size pieces, running over the entire series"
+	series [series!] "The series to split"
+	sizes  [block!]  "Must contain only integers; negative values mean ignore that part"
+][
+	if not parse sizes [some integer!][ cause-error 'script 'invalid-arg [sizes] ]
+	collect [
+		while [not tail? series][
+			keep map-each len sizes [
+				either positive? len [
+					copy/part series series: skip series len
+				][
+					series: skip series negate len
+					()										;-- return unset so that nothing is added to output
+				]
+			]
+		]
+	]
+]
+
 ;@Toomasv
 ;split-var-parts: function [
 ;	"Split a series into variable size pieces"

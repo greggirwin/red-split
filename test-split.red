@@ -187,13 +187,22 @@ do [
 	;-------------------------------------------------------------------------------
 	test [split [1 2 3 4 5 6]      [into 2 parts]]    [[1 2 3] [4 5 6]]
 	test [split "1234567812345678" [into 2 parts]]  ["12345678" "12345678"]
-	test [split "1234567812345678" [into 3 parts]]  ["12345" "67812" "345678"]
-	test [split "1234567812345678" [into 5 parts]]  ["123" "456" "781" "234" "5678"]
-
+; Original tests, for unbalanced splitting
+;	test [split "1234567812345678" [into 3 parts]]  ["12345" "67812" "345678"]
+;	test [split "1234567812345678" [into 5 parts]]  ["123" "456" "781" "234" "5678"]
+; New tests for balanced splitting
+	test [split "1234567812345678" [into 3 parts]]  ["12345" "678123" "45678"]
+	test [split "1234567812345678" [into 5 parts]]  ["123" "456" "7812" "345" "678"]
+	
 	; Dlm longer than series
-	test [split "123"   [into 6 parts]]			["1" "2" "3" "" "" ""] ;or ["1" "2" "3"]
-	test [split [1 2 3] [into 6 parts]]			[[1] [2] [3] [] [] []] ;or [[1] [2] [3]]
-	test [split quote (1 2 3) [into 6 parts]]	[(1) (2) (3) () () ()] ;or [(1) (2) (3)]
+; Original tests, for unbalanced splitting
+;	test [split "123"   [into 6 parts]]			["1" "2" "3" "" "" ""] ;or ["1" "2" "3"]
+;	test [split [1 2 3] [into 6 parts]]			[[1] [2] [3] [] [] []] ;or [[1] [2] [3]]
+;	test [split quote (1 2 3) [into 6 parts]]	[(1) (2) (3) () () ()] ;or [(1) (2) (3)]
+; New tests for balanced splitting
+	test [split "123"   [into 6 parts]]			["1" "" "2" "" "3" ""]
+	test [split [1 2 3] [into 6 parts]]			[[1] [] [2] [] [3] []]
+	test [split quote (1 2 3) [into 6 parts]]	[(1) () (2) () (3) ()]
 	;test [split [1 2 3] [into 6 parts]]     [[1] [2] [3] none none none] ;or [1 2 3]
 
 
@@ -203,7 +212,12 @@ do [
 	;!! Red doesn't have binary! yet
 	;test [split #{0102030405060708090A} [4 3 1 2]]      [#{01020304} #{050607} #{08} #{090A}]
 
-	test [split [1 2 3 4 5 6] [2 1]]                [[1 2] [3]]
+; Original tests, for var splitting once
+;	test [split [1 2 3 4 5 6] [2 1]]                [[1 2] [3]]
+; New tests for var splitting running over entire series
+	test [split [1 2 3 4 5 6] [2 1]]                [[1 2] [3] [4 5] [6]]
+	test [split [1 2 3 4 5] [2 1]]                  [[1 2] [3] [4 5] []]
+	
 
 	test [split [1 2 3 4 5 6] [2 1 3 5]]            [[1 2] [3] [4 5 6] []]
 
