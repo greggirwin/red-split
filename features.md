@@ -30,5 +30,5 @@ SPLIT features and examples
 | mixed delimiters                 |                                           | `split        series ["1" 1 10]`      |                             |
 | from tail                        |                                           | `split/tail   series 3`               |                             |
 | limited number of splits         |                                           | `split/limit  series 3 2`             |                             |
-| by any number of levels          |                                           | `split/groups series [[2 -1 4] 1 3]`  |                             |
-|                                  |                                           | `split/groups series [sp comma dot]`  |                             |
+| by any number of levels          |                                           | `split/group series [[2 -1 4] 1 3]`   |                             |
+|                                  |                                           | `split/group series [sp comma dot]`   |                             |
