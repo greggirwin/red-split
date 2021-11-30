@@ -11,8 +11,8 @@ SPLIT features and examples
 |                                  | `split series [after (charset "ab")]`     | `split/after series charset "ab"`     |                             |
 | before each delimiter            | `split series [before "1"]`               | `split/before series "1"`             |                             |
 | once at delimiter                | `split series [once at 'x]`               | `split/first series 'x`               |                             |
-| once `[before \| after]` ...     | `split series [once before 'x]`           | `split/before/first series 'x`        |                             |
-| at `[first \| last]` delimiter   | `split series [first 'x]`                 | `split/first series 'x`               |                             |
+| once \[before \| after\] ...     | `split series [once before 'x]`           | `split/before/first series 'x`        |                             |
+| at \[first \| last\] delimiter   | `split series [first 'x]`                 | `split/first series 'x`               |                             |
 |                                  | `split series [last (integer!)]`          | `split/last series integer!`          |                             |
 | with fuzzy delimiters            | `split series [any space comma]`          | `split/rule series [any space comma]` |                             |
 | with alternative delimiters      | `split series ['a \| 'b]`                 | `split/rule series ['a \| 'b]`        |                             |
