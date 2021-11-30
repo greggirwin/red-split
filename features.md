@@ -5,7 +5,7 @@ SPLIT features and examples
 |----------------------------------|-------------------------------------------|---------------------------------------|-----------------------------|
 | into parts with specified length | `split series 10`                         | `split series 10`                     |                             |
 | into variable-length parts       | `split series [2 2 4 -1]`                 | `split series [2 2 4 -1]`             |                             |
-| proportionally into N parts      | `split series [into 10]`                  | `split series/n 10`                   |                             |
+| proportionally into N parts      | `split series [into 10]`                  | `split/n series 10`                   |                             |
 | at each delimiter eating it      | `split series "1"`                        | `split series "1"`                    |                             |
 | after each delimiter             | `split series [after "1"]`                | `split/after series "1"`              |                             |
 |                                  | `split series [after (charset "ab")]`     | `split/after series charset "ab"`     |                             |
