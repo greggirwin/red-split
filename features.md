@@ -16,7 +16,7 @@ SPLIT features and examples
 |                                  | `split series [last (integer!)]`          | `split/last series integer!`          |                             |
 | with fuzzy delimiters            | `split series [any space comma]`          | `split/rule series [any space comma]` |                             |
 | with alternative delimiters      | `split series ['a \| 'b]`                 | `split/rule series ['a \| 'b]`        |                             |
-| by two levels                    | `split series [first by "," then by " "]` | `split/groups series [" " ","]`       |                             |
+| by two levels                    | `split series [first by "," then by " "]` | `split/group series [" " ","]`        |                             |
 | by raw delimiter                 | `split series [as-delim 3]`               | `split/value series 3`                |                             |
 | by function                      | `split series :fn`     (partition)        | `split series :fn`   (split at true)  |                             |
 |                                  |                                           |                                       |                             |
