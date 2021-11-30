@@ -23,11 +23,11 @@ SPLIT features and examples
 | **PROPOSALS / IDEAS**            |                                           |                                       |                             |
 | before and after each delimiter  |                                           | `split/around series "1"`             |                             |
 | in turn at each delim in block   |                                           | `split/each   series ["1" "2"]`       |                             |
-| with numeric steps               |                                           | `split/each   series ["1" 2 "2"]`     |                             |
 | with fractional steps            |                                           | `split        series 1.5`             |                             |
 |                                  |                                           | `split        series 10%`             |                             |
 |                                  |                                           | `split        series [2 20% 30%]`     |                             |
 | mixed delimiters                 |                                           | `split        series ["1" 1 10]`      |                             |
+|                                  |                                           | `split/each   series ["1" 2 "2"]`     |                             |
 | from tail                        |                                           | `split/tail   series 3`               |                             |
 | limited number of splits         |                                           | `split/limit  series 3 2`             |                             |
 | by any number of levels          |                                           | `split/group series [[2 -1 4] 1 3]`   |                             |
