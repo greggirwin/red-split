@@ -696,6 +696,10 @@ split-ctx: context [
 					; will make the rules for that quite different. Maybe still a net
 					; win, but not beautiful.
 					append opts 'dialected-call
+					;!! I think there's a missing branch here. If 'every is used, and/or
+					;	we have =pos rather than =dlm, `split-fixed-parts` should be
+					;	called instead of split-delimited. BUT `split-fixed-parts` has
+					;	no support for `opts` currently.
 					res: split-delimited/with series any [=pos =dlm] opts
 				)
 			]
