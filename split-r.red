@@ -2,7 +2,7 @@ Red [
 	Title:   "Red SPLIT functions"
 	Author:  "Gregg Irwin"
 	Adaptation: "Toomas Vooglaid"
-	File: 	 %split.red
+	File: 	 %split-r.red
 	Tabs:	 4
 	Rights:  "Copyright 2021 All Mankind. No rights reserved."
 	License: 'MIT
