@@ -1,466 +1,568 @@
 Red [
-  todo: {
-    1. tail and last (reverse)
-    2. complete groups
-  }
+	Title:   "Red SPLIT functions"
+	Author:  "Gregg Irwin"
+	Adaptation: "Toomas Vooglaid"
+	File: 	 %split.red
+	Tabs:	 4
+	Rights:  "Copyright 2021 All Mankind. No rights reserved."
+	License: 'MIT
 ]
-;#include %assert.red
-
 context [
-	;types: exclude default! make typeset! [integer! any-function! block! event!]
-	refs: [before after around first last tail each limit quoted only by into groups]
-	arity?: function [fn [any-function!]][i: 0 parse spec-of :fn [opt string! some [word! opt block! opt string! (i: i + 1)]] i]
-	block-of?: func [input type][
-		all [
-			block? :input
-			parse  :input [some type]
-		]
-	]
-	sum-abs: function [block [block!]][out: 0 foreach i block [out: out + absolute i]]
-	prod: function [block [block!]][out: 1 foreach i block [out: out * i] out]
-	fn: fns: s: e: none
-	set-before: does [set bind 'before :split-r yes]
-	series: to-block series!
-	check-series: function [types][all [
-		not empty? intersect series types
-		empty? exclude types series
-	]]
-	make-fn: function [delim /with funcs /extern fn s e /local b][
-		arity: arity? :delim
-		if not find [1 2 3] arity [cause-error 'script 'invalid-arg [:delim]]
-		types: copy []
-		parse spec-of :delim [opt string! some [skip [set b block! (append/only types b) | (append/only types copy [])] opt string!]]
-		arg: switch arity [
-			1 [either check-series types/1 [[s]][[s/1]]] ; Needs /before to not eat item
-			2 [case [
-				check-series types/1 [[s s/1]] ; First arg is series. Needs /before to not eat item
-				check-series types/2 [[s/1 s]] ; Second arg is series. Needs /before to not eat item
-				true [set-before [s/-1 s/1]]   ;Usually comparison, by default split between items
-			]]
-			3 [[s/-1 s/1 s]] ;Total control, needs to use /before to not eat item
-		]
-		case [
-			with [
-				i: length? append funcs :delim
-				either op? :delim [
-					compose [s: if (to-paren compose [
-						quote (to-paren compose/deep [
-							fn: (to-get-path reduce [bind 'funcs :split-r i]) 
-							attempt [(arg/1) fn (arg/2)]
-						])
-					]) skip]
-				][
-					compose [s: if (to-paren compose [
-						quote (to-paren compose/deep [
-							attempt [(to-path reduce [bind 'funcs :split-r i]) (arg)]
-						])
-					]) skip]
-				]
-			]
-			true [
-				fn: :delim
-				either op? :delim [
-					compose [s: if (to-paren compose/deep [e: attempt [(arg/1) fn (arg/2)]]) skip]
-				][
-					compose [s: if (to-paren compose/deep [e: attempt [fn (arg)]]) 
-						[if (all [series? e (head s) = (head e)]) :e | skip]
-					]
-				]
-			]
-		]
-	]
-	word-cases: [
-		case [compose/only system/words/case [
-			lit-word? item [[ahead lit-word! quote (item)]] 
-			word? item [[ahead word! (to-lit-word item)]] 
-			true [[quote (item)]]
-		]]
-		item == quote | ['|]
-		true [compose/only either lit-word? item [[ahead lit-word! quote (item)]][[quote (item)]]]
-	]
-	make-quoted: function [delimiter [block!] case][
-		delim: copy [] 
-		foreach item delimiter [
-			append delim system/words/case bind word-cases :make-quoted
-		]
-	]
-	transform: function [delimiter funcs][
-		forall delimiter [
-			system/words/case [
-				find [change insert replace] delimiter/1 [cause-error 'script 'invalid-arg [:delimiter]]
-				all [
-					find [get-word! get-path!] type?/word delimiter/1 
-					any-function? f: get delimiter/1
-				][change/only delimiter make-fn/with :f funcs]
-				paren? delimiter/1 [
-					change delimiter d: do delimiter/1 
-					if word? delimiter/1 [d: attempt [get delimiter/1] if block? :d [transform d funcs]]
-				]
-				block? delimiter/1 [transform delimiter/1 funcs]
-				word?  delimiter/1 [d: attempt [get delimiter/1] if block? :d [transform d funcs]]
-			]
-		]
-	]
-	de-lf: func [s][foreach b s [if block? b [new-line/all b no]]]
-	
-	set 'split-r function [
-		"Split series according to specified delimiter"
-		series     [series!]  "Series to split"
-		delimiter  [default!] "Delimiter on which to split"
-		/by     "Dummy (default) refinement for compatibility with dialect"
-		/before "Split before the delimiter"
-		/after  "Split after the delimiter"
-		/around "Split before and after the delimiter"
-		
-		/groups "Split into delimiter-specified (possibly nested) groups"
-		
-		/first  "Split on first delimiter / keep first chunk only"
-		/last   "Split on last delimiter / keep last chunk only"
-		/tail   "Split starting from tail"
-		
-		/limit  "Limit number of splittings / chunks to keep"
-			ct  [integer!]
-		/only   "Omit empty chunks and rest (i.e. not specified)"
-		
-		/quoted "Treat delimiter as quoted"
-		/each   "Treat each element in block-delimiter individually"
-		/case
+	trace: off
+	dbg: either all [trace][:print][:none]
 
-		;/morph  "Transform splitted chunks"
-		;	as
-		/with   "Add options in block"
-			options [block!]
-		/local _ 
-		/extern fn fns s e
+	blockify: func [value][compose/only [(:value)]]  
+
+	has?: func [series value][to logic! find/only series value]
+
+	part-sizes: function [
+		total [integer!] "Total length of, e.g., series to split."
+		parts [integer!] "Number of parts to split total into, using a balanced distribution"
 	][
-		;Set refinements
-		if with [
-			if not empty? opts: intersect refs options [
-				 set bind opts :split-r true
-				if limit [ct: select options 'limit]
+		m: total / parts
+		s: 0 
+		sizes: collect [
+			repeat i parts [
+				idx: round/to i * m 1 
+				keep idx - s 
+				s: idx
 			]
 		]
-		system/words/case [
-			word? :delimiter [delimiter: to-lit-word delimiter]
-			path? :delimiter [delimiter: to-lit-path delimiter]
+	]
+
+	split-into-N-parts: function [
+		"Split series into parts using a balanced distribution."
+		series [series!]
+		parts  [integer!]
+		/first
+		/last
+		/limit ct
+		/with opts
+		/local p
+	][
+		if parts < 1 [cause-error 'Script 'invalid-arg parts]
+		if parts = 1 [return blockify series] 
+		if with [set [first last limit ct] opts]
+		sizes: part-sizes length? series parts
+		if first [limit: yes ct: 1]
+		case [last [sizes: copy/part back tail sizes 1] limit [sizes: copy/part sizes ct ct: 1]]
+		opts: reduce [first last limit ct]
+		split-var-parts/with series sizes opts
+	]
+
+	split-fixed-parts: function [
+		"If the series can't be evenly split, the last value will be shorter"
+		series [series!]  "The series to split"
+		size   [integer!] "Size of each part"
+		/first
+		/last
+		/limit ct
+		/with opts
+	][
+		if size < 1 [cause-error 'Script 'invalid-arg size]
+		if with [set [first last limit ct] opts]
+		if first [limit: yes ct: 1]
+		either last [
+			append/only res: copy [] copy/part series (length? series) - size
+			append/only res copy/part skip tail series negate size size
+			;insert/only res head clear skip series (length? series) - size
+			res
+		][
+			rule: [any [keep copy series 1 size skip s:]]
+			change rule either limit [ct]['any]
+			res: parse series [collect rule]
+			if all [limit not tail? series][append/only res copy s]
+			res
 		]
-		;Clarify type of delimiter
-		delim-type: system/words/case delim-cases: [
-			quoted-each?:   all [quoted each block? :delimiter]['quoted-each]
-			quoted ['quoted]
-			int?:       integer? :delimiter [
-				if delimiter > 0 [
-					if 0 = size: to integer! (length? series) / delimiter [size: length? series]
-					size: max 1 size
+	]
+
+	split-var-parts: function [
+		"Split a series into variable size pieces"
+		series [series!] "The series to split"
+		sizes  [block!]  "Must contain only integers; negative values mean ignore that part"
+		/first
+		/last
+		/limit ct
+		/with opts
+	][
+		if with [set [first last limit ct] opts]
+		if first [limit: yes ct: 1]
+		if not parse sizes [some integer!][ cause-error 'script 'invalid-arg [sizes] ]
+		either last [
+			sizes: reverse copy sizes
+			series: tail series
+			res: collect [keep collect [
+				foreach len sizes [
+					either positive? len [
+						keep/only copy/part series series: skip series negate len
+					][
+						series: skip series len ()						;-- return unset so that nothing is added to output
+					]
+				]]
+			]
+			reverse res
+			if not head? series [insert/only res copy/part head series series]
+			res
+		][
+			rule: [
+				while [not tail? series][
+					foreach len sizes [
+						either positive? len [
+							keep/only copy/part series series: skip series len
+						][
+							series: skip series negate len ()			;-- return unset so that nothing is added to output
+						]
+					]
 				]
-				'int
 			]
-			;pair? :delimiter ['pair] ;;???
-			fn?:        any-function? :delimiter ['fn]
-			int-block?: block-of? :delimiter integer! ['int-block]
-			fn-block?:  block-of? :delimiter any-function? ['fn-block]
-			to-logic all [block? :delimiter not empty? intersect refs :delimiter] [DSL?: yes 'DSL]
-			all [series? delimiter empty? delimiter][;Treat empty delimiter as 1
-				delimiter: 1 
-				size: to integer! (length? series) / delimiter
-				int?: yes 'int
+			change/part rule either limit [[loop ct]][[while [not tail? series]]] 2
+			res: collect rule
+			if all [limit not tail? series] [append/only res copy series]
+			res
+		]
+	]
+
+	split-var-parts2: function [
+		"Split a series into variable size pieces"
+		series [series!] "The series to split"
+		sizes  [block!]  "Must contain only integers; negative values mean ignore that part"
+		/only "Keep patterns as separate blocks"
+	][
+		if not parse sizes [some integer!][ cause-error 'script 'invalid-arg [sizes] ]
+		collect [
+			while [not tail? series][
+				res: collect [
+					foreach len sizes [
+						either positive? len [
+							keep/only copy/part series series: skip series len
+						][
+							series: skip series negate len
+							()										;-- return unset so that nothing is added to output
+						]
+					]
+				]
+				either only [keep/only res][keep res]
 			]
-			parse?:   block? :delimiter [
-				funcs: clear []
-				transform delimiter funcs
-				delimiter: compose/deep/only delimiter
-				'parse
-			]
-			simple?:  true ['simple]
+		]
+	]
+
+	split-at-offset: function [    ;offset? @toomasv
+		"Split the series at the given offset; returns the two parts." 
+		series  [series!]
+		offset  [integer!]
+		/last  "Split at offset back from tail"
+	][
+		if last [offset: subtract length? series offset]
+		reduce [copy/part series offset   copy at series offset + 1]
+	]
+
+	split-once: function [
+		"Split the series at a position or value, returning the two halves."
+		series [series!]
+		delim  "Delimiting value, or offset if an integer"
+		/value "Split at delim value, not offset, if it's an integer"
+		/before "Include delimiter in the second half; implies /value"
+		/after  "Include delimiter in the first half; implies /value"
+		/last  "Split at the last position occurrence of value"
+		/with opts [block! none!]  "Block of options to use in place of refinements"
+	][
+		if opts [	; ?? do we want to OR refinements and options together, or override like this?
+			before: has? opts 'before
+			after:  has? opts 'after
+			last:   has? opts 'last
 		]
 
-		;Construct delimiter
-		delim: switch/default delim-type make-delim: [
-			quoted-each [make-quoted :delimiter case]
-			quoted [
-				item: :delimiter 
-				compose/only system/words/case bind word-cases :split-r
+		either all [integer? delim  not any [value before after]] [
+			either last [
+				split-at-offset/last series :delim
+			][
+				split-at-offset series :delim
 			]
-			fn [make-fn :delimiter]
-			DSL [parse delimiter [
-				opt [['before 'and 'after | 'around] (around: true) | 'before (before: true) | 'after (after: true) | 'by (by: true)]
-				opt ['first (first: true) | 'last (last: true)]
-				opt [ahead [integer! [end | 'only]] set delimiter integer! | set ct integer! (limit: true)]
-				[s: 'quoted (quoted: true) opt ['each (each: true)] set delimiter skip 
-				| 'into set delimiter skip opt 'groups (groups: true)
-				| [ 
-				    paren! (delimiter: do s/1)
-				  | [get-word! | get-path!] (delimiter: get s/1)
-				  | [word! | path!] (delimiter: get s/1)
-				  | set delimiter skip 
-				  ]
-				] (
-				  delim-type: system/words/case delim-cases 
-				  delim: switch/default delim-type make-delim [:delimiter]
-				)
-				opt ['only (only: true)]
-			] delim]
-		] [
-			system/words/case [
-				any [
-					find [get-word! set-word! get-path! set-path!] type?/word :delimiter
-				][reduce ['quote :delimiter]]
-				true [:delimiter]
-			]
-		]
-		;Construct inner main rule
-		main: compose/deep/only system/words/case [
-			groups [
-				out: none
-				system/words/case [
-					int? [
-						either delim <= 0 [[keep (quote (copy []))]][
-							rest: (length? series) % delim
-							system/words/case [
-								all [tail only] []
-								all [first only] [[keep copy _ (size + pick [1 0] rest > 0) skip]]
-								first [[opt [keep copy _ (size) skip] [end | keep copy _ thru end]]]
-								true [[(rest) [keep copy _ (size + 1) skip] (delim - rest) [keep copy _ (size) skip]]]
-								;only [[(rest) [keep copy _ (size + 1) skip] (delim - rest) [keep copy _ (size) skip]]]
-								;true [[keep copy _ (size) skip]]
-							]
-						]
-					]
-					;delim-type = 'pair [ ;;???
-					;]
-					int-block? [
-						out: copy [s: if (to-paren compose [(quote (length? s)) >= (prod delim)])]
-						ints: copy delim
-						i: take ints
-						res: compose [keep copy _ (i) skip]
-						while [i: take ints][res: compose/deep/only [collect [(i) (res)]]]
-						append out res
-					]
-					fn-block? [] 
-					all [block? delim] [
-						out: make block! len: length? delim
-						loop len [append/only out copy []]
-						blk: copy delim
-						res: copy [s:]
-						waiting: none
-						forall blk [
-							i: index? blk
-							out: at head out i
-							system/words/case [
-								head? blk [
-									waiting: 1
-									foreach o out [
-										append o [append/only out/1 copy/part series s]
-									]
-								]
-								last? blk [
-									waiting: none
-									append pick head out i compose [e: copy (path: to-path compose [out (i - 1)]) clear (path)]
-								]
-								true [
-									waiting: i
-									foreach o out [
-										append o compose [append/only (to-path compose [out (i)]) copy (path: to-path compose [out (i - 1)]) clear (path)]
-									]
-								]
-							]
-						]
-						out: head out
-						forall blk [
-							append/only res blk/1
-							append/only res to-paren compose [quote (to-paren out/(index? blk))]
-							either last? blk [append res [keep (quote (e)) series:]][append res quote series:]
-							append res '|
-						]
-						foreach o out [clear o]
-						;either only [
-							append res 'skip
-						;][
-						;	append res compose [skip (to-paren compose [quote (to-paren compose [append pick out (1 + length? blk) s/1])])]
-						;]
-						res
-					]
-					true [
-						out: copy []
-						system/words/case [
-							only [[keep (delim) | skip]]
-							true [[keep (delim) | s: skip (quote (append out s/1))]]
-						]
-					]
-				]
-			]
-			int? [either delim <= 0 [[keep (quote (copy []))]][[keep copy _ (delim) skip]]]
-			int-block? [
-				sum-ints: sum-abs delimiter 
-				[
-					if (quote ((length? series) >= sum-ints)) 
-					(quote (delim: head delim)) 
-					while [
-						if (quote (not tail? delim)) 
-						(quote (i: delim/1 delim: next delim)) 
-						[
-						  if (quote (i < 0))(quote (i: absolute i))
-						  i skip
-						| keep copy _ i skip
-						] series:
-					]
-				]
-			]
-			around or (before and after) [system/words/case [
-				only [[s: keep copy _ to [(delim) | if (quote (not head? s)) end] any keep (delim) opt end]]
-				;only [[keep copy _ to [(delim) | end] any keep (delim) opt end]]
-				true [[keep copy _ to (delim) keep (delim)]]
-			]]
-			after [[keep copy _ thru (delim)]]
-			before [system/words/case [
-				only [[keep copy _ [(delim) to [(delim) | end]]]]
-				true [[keep copy _ [opt (delim) to [(delim) | end]]]]
-			]]
-			true [system/words/case [
-				all  [first only] [[s: keep copy _ to [(delim) | if (quote (not head? s)) end]]]
-				only [[keep copy _ to [(delim) | end] any (delim) opt end]]
-				true [[keep copy _ to (delim) (delim)]]
-			]]
-		]
-		
-		;Add stepper if needed
-		step: system/words/case [
-			
-		]
-		if step [append main reduce ['| step]]
-		
-		;Make looper
-		rule: to-block system/words/case [
-			limit [reduce [0 ct]]
-			any [first last] ['opt]
-			all [groups int?] [delim];[system/words/case [int? [delim]]]
-			only ['some]
-			true ['any]
-		]
-		;Modify looper
-		system/words/case [
-			int-block? []
-			groups []
-			all [only (around or (before and after))][insert rule compose/only [any keep (delim)]]
-			all [before only][insert rule compose/only [to (delim)]]
-			all [after only][insert rule compose/only [any (delim)]]
-			only [insert rule compose/only [any (delim)]]
-		]
-		;Construct rule
-		append/only rule main
-		;Construct and add rest if needed
-		rest: if not only [
-			system/words/case [
-				any [
-					all [int? not groups]
-					int-block?
-					before and not after
-					;all [groups any [first last limit]]
-				] [[end | keep copy _ thru end]]
-				groups [
-					if all [not int? block? :delim] [compose/deep [
-						[s: opt [
-							;if (to-paren compose [not empty? (path: to-path compose [out (-1 + length? out)])]) 
-							;(to-paren compose [e: copy append (path) copy/part series s clear (path)]) keep (quote (e))
-							if (quote (x: clear [] any [
-								not empty? e: copy/part series s
-								forall out [if any [not empty? out/1 not empty? x] [index? out e: copy append/only x copy out/1 clear out/1]]
-							])) 
-							keep (quote (e))
-						]]
-					]]
-				]
-				true [[keep copy _ thru end]]
-			]
-		]
-		if rest [append/only rule rest]
-		
-		;Prepare final
-		if tail or last [series: tail series]
-		
-		;Prepare result
-		;reduce [delim size]
-		result: system/words/case [
-			all [groups int?] [make block! delim + 1]
-			int? [either delim > 0 [make block! to integer! delim / size + 1][make block! 2]]
-			all [groups block? :delim] [make block! 1 + length? delim]
-			true [copy []]
-		]
-		;Do it 
-		;probe 
-		final: compose/only [collect into result (rule)]
-		either case [
-			parse/case series final
 		][
-			parse series final
-		]
-		system/words/case [
-			groups [
-				
-				system/words/case [
-					all [block? delim not fn? each][
-						if empty? system/words/last out [
-							remove back system/words/tail out
-						] result: out
-					]
-					;block? delim [if not empty? b: back back out [append result b]]
-					;all [block? out not groups] [result: reduce either only [[result]][[result out]]]
-				]
-				de-lf result
+			if all [
+				string? series
+				not char? :delim		; This is an optimization, no need for FORM+LENGTH?
+				not bitset? :delim		; This is important for functionality
+			][delim: form :delim]
+			drop-len: case [			; are we keeping or dropping the delimiter
+				any [before after]	[0]	; keep it
+				series? :delim 		[length? :delim]
+				'else	 			[1]	; Scalar values in blocks, and charsets
 			]
-			tail or last [reverse result]
+			either all [block? series series? :delim not block? :delim][   ;@toomasv Should use `apply`
+				p-1: case [
+					all [after  last]	[find/only/tail/last series delim]
+					after  				[find/only/tail series delim]
+					last   				[find/only/last series delim]	; = [before last]
+					'else  				[find/only series delim]		; = before
+				]
+				reduce either p-1 [
+					p-2: find/only/match/tail p-1 :delim     ;skip p-1 drop-len
+					[copy/part series p-1   p-2]
+				][
+					[copy series]
+				]
+			][
+				p-1: case [
+					all [after  last]	[find/tail/last series delim]
+					after  				[find/tail series delim]
+					last   				[find/last series delim]	; = [before last]
+					'else  				[find series delim]		    ; = before
+				]
+				reduce either p-1 [
+					p-2: find/match/tail p-1 :delim     ;skip p-1 drop-len
+					[copy/part series p-1   p-2]
+				][
+					[copy series]
+				]
+			]
+		]
+	]
+
+	all-are?: func [    ; every? all-are? ;; each? is-each? each-is? are-all? all-of?
+		"Returns true if all items in the series match a test"
+		series	[series!]
+		test	"Test to perform against each value; must take one arg if a function"
+	][
+		either any-function? :test [
+			do [
+				foreach value series [if not test :value [return false]]	;!! this doesn't compile
+			]
+			true
+		][
+			if word? test [test: to lit-word! form test]
+			either integer? test [
+				parse series compose [some quote (test)]
+			][
+				parse series [some test]
+			]
+		]
+	]
+
+	delim-types: exclude default! make typeset! [integer! block! any-function! event!]
+
+	;-------------------------------------------------------------------------------
+
+	split-delimited: function [
+		"Split series at every occurrence of delim"
+		series [series!]
+		delim  "Delimiter marking split locations"
+		/before "Include delimiter in the value following it"
+		/after  "Include delimiter in the value preceding it"
+		/first  "Split at the first occurrence of value"
+		/last   "Split at the last occurrence of value"
+		/limit ct [integer!] "Maximum number of splits to perform; remainder of series is the last"
+		/with opts [block!]  "Block of options to use in place of refinements (internal)"
+		/local v 
+	][
+		if with [set [before after first last limit ct] opts]
+		if first [limit: yes ct: 1]
+		if all [ct  ct < 1] [cause-error 'Script 'invalid-arg ct]
+		result: copy []
+		either last [
+			either pos: case [
+				after [find/last/tail series delim]
+				'else [find/last series delim]
+			][
+				unless all [before head? series][append/only result copy/part series series: pos]
+				case [
+					before [append/only result copy series]
+					after  [if not tail? series [append/only result copy series]]
+					'else  [append/only result copy find/tail series delim]
+				]
+			][
+				append/only result copy series
+			]
+		][
+			find-next: case [
+				before [[pos: find any [find/match/tail series delim  series] delim]]
+				after  [[pos: find/tail series delim]]
+				'else  [[pos: find series delim pos1: find/match/tail pos delim]]
+			]
+			keep-found: [
+				append/only result copy/part series pos
+				series: either any [before after][pos][pos1]
+				if all [tail? series not any [before after]][
+					append/only result copy series
+				]
+			]
+			either limit [
+				loop ct compose [(find-next) unless pos [append result copy series series: tail series break] (keep-found)]
+			][
+				while find-next keep-found
+			]
+			if not tail? series [append/only result copy series]
 		]
 		result
 	]
-	comment {
-	#assert [
-		;Test delimiter-types, no refinements
-		[[0] [1 b 2 c 3 d]]  = split-r [0 a 1 b 2 c 3 d] 'a
-		[[0] [1] [2] [3] []] = split-r [0 a 1 b 2 c 3 d] word!
-		[[0 a] [b 2 c] [d]]  = split-r [0 a 1 b 2 c 3 d] :odd?
-		[[0] [1 b] [c 3 d]]  = split-r [0 a 1 b 2 c 3 d] ['a | quote 2]
-		[[0] [b 2] [d]]      = split-r [0 a 1 b 2 c 3 d] [word! :odd?]
-		[#{CA} #{} #{ED}]    = split-r #{CAFE FEED} #{FE}
-		
-		;Test before, after, around
-		[[0] [a 1 b 2 c 3 d]]       = split-r/before [0 a 1 b 2 c 3 d] 'a
-		[[0] [a 1] [b 2] [c 3] [d]] = split-r/after  [0 a 1 b 2 c 3 d] number!
-		[[0 a] 1 [b 2 c] 3 [d]]     = split-r/around     [0 a 1 b 2 c 3 d] :odd?
 
-		;Test quoted
-		[[0 a 1 b] [c 3 d 4 e]]     = split-r/quoted    [0 a 1 b 2 c 3 d 4 e] 2
-		[[0 a 1 b] [2 c] [3 d 4 e]] = split-r/around/quoted [0 a 1 b [2 c] 3 d 4 e] [2 c]
+	;-------------------------------------------------------------------------------
 
-		;Test first, limit
-		[[0] [1 b 2 c 3 d]]     = split-r/first        [0 a 1 b 2 c 3 d] word!
-		[[0] [1] [2 c 3 d]]     = split-r/limit        [0 a 1 b 2 c 3 d] word! 2
-		[[0] [a 1] [b 2 c 3 d]] = split-r/before/limit [0 a 1 b 2 c 3 d] word! 2
-		
-		;Test only
-		[[0]]         = split-r/first/only        [0 a 1 b 2 c 3 d] word!
-		[[0] [1]]     = split-r/limit/only        [0 a 1 b 2 c 3 d] word! 2
-		[[a 1] [b 2]] = split-r/before/limit/only [0 a 1 b 2 c 3 d] word! 2
 
-		;Test sized chunks
-		[[0 a] [1 b] [2 c] [3 d]]         = split-r      [0 a 1 b 2 c 3 d] 2
-		[[0 a] [1 b 2] [c 3 d]]           = split-r      [0 a 1 b 2 c 3 d] [2 3]
-		[[0 a] [1 b 2]]                   = split-r/only [0 a 1 b 2 c 3 d] [2 3]
-		["DD" "MM" "YYYY" "SS" "MM" "HH"] = split-r      "DDMMYYYY/SSMMHH" [2 2 4 -1 2 2 2]
-		
-		;Test grouping
-		[[0 a 1 b] [2 c 3 d] []]  = split-r/groups      [0 a 1 b 2 c 3 d] 2
-		[[0 a 1 b] [2 c 3 d] [4]] = split-r/groups      [0 a 1 b 2 c 3 d 4] 2
-		[[0 a 1 b 2] [c 3 d 4]]   = split-r/groups/only [0 a 1 b 2 c 3 d 4] 2
-
-		;Test dialect
-		[[0 a 1 b] [c 3 d]]         = split-r [0 a 1 b 2 c 3 d]     [by quoted 2]
-		[[a 1] [b 2]]               = split-r [0 a 1 b 2 c 3 d]     [before 2 word! only]
-		[[0 a] [1 b 2] [c 3 d 4 e]] = split-r [0 a 1 b 2 c 3 d 4 e] [by first [2 3]]
-		[[[0 a] [1 b] [2 c]]]       = split-r [0 a 1 b 2 c 3 d 4 e] [into [2 3] groups only]
-		
-		;Test case
-		["a" "A" ""] = split-r      "abAB" "B"
-		["abA" ""]   = split-r/case "abAB" "B"
+	block-of-ints?: func [value][
+		all [block? :value  attempt [all-are? reduce value integer!]]
 	]
-	}
+	block-of-funcs?: func [value][
+		all [block? :value  attempt [all-are? reduce value :any-function?]]
+	]
+
+	series: to-block series!
+	is-series?: function [types][
+		all [
+			not empty? intersect series t: collect [foreach t types [
+				keep to-block either typeset? ts: get t [ts][t]
+			]]
+			empty? exclude t series
+		]
+	]
+	
+	split-by-func: function [
+		series
+		fn
+		/before
+		/after
+		/first
+		/last
+		/limit ct
+		/with opts "(internal)"
+	][
+		if with [set [before after first last limit ct] opts]
+		if first [limit: yes ct: 1]
+		result: copy []
+		types: parse spec-of :fn [
+			opt string! 
+			collect any [word! [keep block! | keep (copy [])] opt string!]
+		]
+		call: switch/default arity: length? types [
+			1 [either is-series? types/1 [[fn pos]][[fn pos/1]]] 
+			2 [before: yes either op? :fn [[pos/-1 fn pos/1]][[fn pos/-1 pos/1]]]  ; Usually comparison, split between items
+		][cause-error 'script 'invalid-arg [:fn]]
+		either last [pos: back series: tail series][pos: series]
+		step: pick [-1 1] last
+		find-next: [
+			res: attempt call
+			any [all [res not all [before head? pos]] tail? pos: skip pos step]
+		]
+		cases: [
+			integer? res [if res = 0 [break] pos1: skip pos res]
+			all [series? res  same? head res head pos][if res = pos [break] pos1: res]
+			true == res [pos1: next pos]
+			true [pos1: any [find pos res  tail pos]]
+		]
+		keep-found: [
+			case cases
+			append/only result copy/part series either after [pos1][pos]
+			series: either before [pos][pos1]
+			if all [tail? series not any [before after limit]][append/only result copy series]
+			pos: pos1
+		]
+		
+		either last [
+			until [
+				any [
+					res: attempt call
+					pos: skip stop: pos step
+				]
+				any [res  head? stop]
+			] 
+			case cases
+			either res [
+				if not all [before head? pos][
+					append/only result copy/part head series either after [pos1][probe pos]
+				]
+				if not all [after tail? pos1] [append/only result copy either before [pos][pos1]]
+			][
+				append/only result copy series
+			]
+		][
+			case [
+				limit [loop ct compose [until find-next  (keep-found)]]
+				'else [while [until find-next all [res not tail? pos]] keep-found]
+			]
+			if not tail? series [append/only result copy series]
+		]
+		result
+	]
+	
+	prod: function [block [block!]][out: 1 foreach i block [out: out * i]]
+	collect-groups: function [
+		series [series!]
+		delim  [block!]
+	][
+		collect [
+			either single? delim [
+				return copy/part series delim/1
+			][
+				step: prod rest: next delim
+				loop delim/1 [
+					keep/only collect-groups series rest
+					series: skip series step
+				]
+			]
+		]
+	]
+	split-into-groups: function [
+		series [series!]
+		delim  [block!]
+		/first
+		/last
+		/limit ct
+		/with opts
+	][
+		if with [set [first last limit ct] opts]
+		if first [limit: yes ct: 1]
+		step: prod delim
+		if last [series: skip tail series negate step]
+		rule: [
+			while [not tail? series] [
+				keep/only collect-groups series delim 
+				series: skip series step
+			]
+		]
+		change/part rule either limit [[loop ct]][[while [not tail? series]]] 2
+		collect rule
+	]
+	
+	split-group: function [
+		series [series!]
+		delim  [block!]
+		;/first
+		;/last
+		;/limit ct
+		;/with opts
+	][
+		if with [set [before after first last limit ct] opts]
+		if first [limit: yes ct: 1]
+		results: make block! len: length? delim
+		loop len [append/only results copy []] 
+		res: copy []
+		forall delim [
+			i: index? delim
+			results: at head results i
+			case [
+				head? delim [
+					foreach o results [
+						append o [append/only results/1 copy/part series s]
+					]
+				]
+				last? delim [
+					append pick head results i compose [
+						e: copy (path: to-path compose [results (i - 1)]) clear (path)
+					]
+				]
+				true [
+					foreach o results [
+						append o compose [
+							append/only (to-path compose [results (i)]) copy (path: to-path compose [results (i - 1)]) clear (path)
+						]
+					]
+				]
+			]
+		]
+		results: head results
+		forall delim [
+			append res case [
+				last? delim [compose/deep/only [s: [(delim/1) | end]]]
+				true [compose/only [s: (delim/1)]]
+			]
+			append/only res to-paren compose [quote (to-paren results/(index? delim))]
+			if last? delim [append res [keep (quote (e))]]
+			append res quote series:
+			append res '|
+		]
+		tmp: copy skip find/reverse/tail back tail res '| 2
+		take/last tmp
+		append res compose/deep [skip opt [end s: (tmp)]]
+		foreach o results [clear o]
+		res: compose/deep res
+		parse series [collect any [res]]
+	]
+	
+	split-by-rule: function [
+		series [series!]
+		delim  [block!]
+		/before
+		/after
+		/first
+		/last
+		/limit ct
+		/with opts
+	][
+		if with [set [before after first last limit ct] opts]
+		if first [limit: yes ct: 1]
+		either last [
+			series: tail series
+			rule: [
+				any [s: 
+				  delim e: [
+					if (before) opt [if (not head? s) keep (copy/part head s s)] :s keep copy _ thru end
+				  | if (after) keep (copy/part head s e) [end | keep copy _ thru end]
+				  | keep (copy/part head s s) :e keep copy _ thru end
+				  ]
+				| if (head? s) keep copy _ thru end
+				| (s: back s) :s
+				]
+			]
+		][
+			rule: [
+				any [
+				  if (before) keep copy _ [opt delim to [delim | end]]
+				| if (after)  keep copy _  thru [delim opt end | end]
+				| keep copy _ to [delim | end] opt [delim s: opt [end keep (copy s)] :s]
+				] [end | keep copy _ to end]
+			]
+			change rule either limit [ct]['any]
+		]
+		parse series [collect rule]
+	]
+	
+	set 'split function [
+		"Split a series into parts, by delimiter, size, number, function, type, or advanced rules"
+		series [series!] "The series to split"
+		dlm    "Dialected rule (block), part size (integer), predicate (function), or delimiter." 
+		/before
+		/after
+		/first
+		/last
+		/parts
+		/group
+		/limit ct
+		/value
+		/rule
+		/local s v ;rule
+	][
+		case [
+			any [find delim-types type? :dlm value] [
+				res: split-delimited/with series dlm reduce [before after first last limit ct]
+			]
+			integer? :dlm [
+				res: either parts [
+					split-into-N-parts/with series dlm reduce [first last limit ct]
+				][
+					split-fixed-parts/with  series dlm reduce [first last limit ct]
+				]
+			]
+			block-of-ints? :dlm [
+				res: either group [
+					split-into-groups/with series dlm reduce [first last limit ct]
+				][
+					split-var-parts/with   series dlm reduce [first last limit ct]
+				]
+			]
+			any-function? :dlm [
+				res: split-by-func/with series :dlm reduce [before after first last limit ct]
+			]
+			block? :dlm [
+				res: case [
+					group [split-group series dlm];TBD /with reduce [first last limit ct]]
+					rule  [split-by-rule/with series dlm reduce [before after first last limit ct]]
+					true  [split-delimited/with series dlm reduce [before after first last limit ct]]
+				]
+			]
+			'else [
+				cause-error 'Script 'invalid-arg :dlm
+			]
+		]
+		return res		
+	]
 ]
