@@ -457,7 +457,14 @@ context [
 		if with [set bind opts :split-r true]
 		;foreach o opts [print [o get o]]
 		case [
-			any [find delim-types type? :dlm value] [
+			any [
+				find delim-types type? :dlm 
+				value 
+				all [
+					any [before after]
+					any [integer? :dlm block-of-ints? :dlm] 
+				]
+			][
 				res: split-delimited/with series dlm reduce [before after first last limit ct]
 			]
 			integer? :dlm [

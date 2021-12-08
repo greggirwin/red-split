@@ -59,7 +59,7 @@ context [
 					find [word! get-word!] type?/word :delim [delim: get :delim]
 					all [
 						block? delim 
-						not find refinements/data 'value 
+						empty? intersect refinements/data [before after value rule]
 						not find/match trim/head face/text #"["
 						word? delim/1 
 						any-function? get delim/1
