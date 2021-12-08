@@ -1,8 +1,9 @@
 Red [
 	Title:   "Red SPLIT functions"
 	Author:  "Gregg Irwin"
+	Adapted: "For use as refinement-based instead of dialect-based"
 	Adaptation: "Toomas Vooglaid"
-	File: 	 %split-r.red
+	File: 	 %split.red
 	Tabs:	 4
 	Rights:  "Copyright 2021 All Mankind. No rights reserved."
 	License: 'MIT
@@ -146,102 +147,7 @@ context [
 		]
 	]
 
-	split-at-offset: function [    ;offset? @toomasv
-		"Split the series at the given offset; returns the two parts." 
-		series  [series!]
-		offset  [integer!]
-		/last  "Split at offset back from tail"
-	][
-		if last [offset: subtract length? series offset]
-		reduce [copy/part series offset   copy at series offset + 1]
-	]
-
-	split-once: function [
-		"Split the series at a position or value, returning the two halves."
-		series [series!]
-		delim  "Delimiting value, or offset if an integer"
-		/value "Split at delim value, not offset, if it's an integer"
-		/before "Include delimiter in the second half; implies /value"
-		/after  "Include delimiter in the first half; implies /value"
-		/last  "Split at the last position occurrence of value"
-		/with opts [block! none!]  "Block of options to use in place of refinements"
-	][
-		if opts [	; ?? do we want to OR refinements and options together, or override like this?
-			before: has? opts 'before
-			after:  has? opts 'after
-			last:   has? opts 'last
-		]
-
-		either all [integer? delim  not any [value before after]] [
-			either last [
-				split-at-offset/last series :delim
-			][
-				split-at-offset series :delim
-			]
-		][
-			if all [
-				string? series
-				not char? :delim		; This is an optimization, no need for FORM+LENGTH?
-				not bitset? :delim		; This is important for functionality
-			][delim: form :delim]
-			drop-len: case [			; are we keeping or dropping the delimiter
-				any [before after]	[0]	; keep it
-				series? :delim 		[length? :delim]
-				'else	 			[1]	; Scalar values in blocks, and charsets
-			]
-			either all [block? series series? :delim not block? :delim][   ;@toomasv Should use `apply`
-				p-1: case [
-					all [after  last]	[find/only/tail/last series delim]
-					after  				[find/only/tail series delim]
-					last   				[find/only/last series delim]	; = [before last]
-					'else  				[find/only series delim]		; = before
-				]
-				reduce either p-1 [
-					p-2: find/only/match/tail p-1 :delim     ;skip p-1 drop-len
-					[copy/part series p-1   p-2]
-				][
-					[copy series]
-				]
-			][
-				p-1: case [
-					all [after  last]	[find/tail/last series delim]
-					after  				[find/tail series delim]
-					last   				[find/last series delim]	; = [before last]
-					'else  				[find series delim]		    ; = before
-				]
-				reduce either p-1 [
-					p-2: find/match/tail p-1 :delim     ;skip p-1 drop-len
-					[copy/part series p-1   p-2]
-				][
-					[copy series]
-				]
-			]
-		]
-	]
-
-	all-are?: func [    ; every? all-are? ;; each? is-each? each-is? are-all? all-of?
-		"Returns true if all items in the series match a test"
-		series	[series!]
-		test	"Test to perform against each value; must take one arg if a function"
-	][
-		either any-function? :test [
-			do [
-				foreach value series [if not test :value [return false]]	;!! this doesn't compile
-			]
-			true
-		][
-			if word? test [test: to lit-word! form test]
-			either integer? test [
-				parse series compose [some quote (test)]
-			][
-				parse series [some test]
-			]
-		]
-	]
-
 	delim-types: exclude default! make typeset! [integer! block! any-function! event!]
-
-	;-------------------------------------------------------------------------------
 
 	split-delimited: function [
 		"Split series at every occurrence of delim"
@@ -295,9 +201,6 @@ context [
 		]
 		result
 	]
-
-	;-------------------------------------------------------------------------------
-
 
 	block-of-ints?: func [value][
 		all [block? :value  attempt [all-are? reduce value integer!]]
