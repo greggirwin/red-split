@@ -202,6 +202,25 @@ context [
 		result
 	]
 
+	all-are?: func [    ; every? all-are? ;; each? is-each? each-is? are-all? all-of?
+		"Returns true if all items in the series match a test"
+		series	[series!]
+		test	"Test to perform against each value; must take one arg if a function"
+	][
+		either any-function? :test [
+			do [
+				foreach value series [if not test :value [return false]]	;!! this doesn't compile
+			]
+			true
+		][
+			if word? test [test: to lit-word! form test]
+			either integer? test [
+				parse series compose [some quote (test)]
+			][
+				parse series [some test]
+			]
+		]
+	]
 	block-of-ints?: func [value][
 		all [block? :value  attempt [all-are? reduce value integer!]]
 	]
@@ -271,7 +290,7 @@ context [
 			case cases
 			either res [
 				if not all [before head? pos][
-					append/only result copy/part head series either after [pos1][probe pos]
+					append/only result copy/part head series either after [pos1][pos]
 				]
 				if not all [after tail? pos1] [append/only result copy either before [pos][pos1]]
 			][
@@ -419,7 +438,7 @@ context [
 		parse series [collect rule]
 	]
 	
-	set 'split function [
+	set 'split-r function [
 		"Split a series into parts, by delimiter, size, number, function, type, or advanced rules"
 		series [series!] "The series to split"
 		dlm    "Dialected rule (block), part size (integer), predicate (function), or delimiter." 
@@ -432,8 +451,11 @@ context [
 		/limit ct
 		/value
 		/rule
+		/with opts
 		/local s v ;rule
 	][
+		if with [set bind opts :split-r true]
+		;foreach o opts [print [o get o]]
 		case [
 			any [find delim-types type? :dlm value] [
 				res: split-delimited/with series dlm reduce [before after first last limit ct]
