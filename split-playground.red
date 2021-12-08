@@ -21,7 +21,10 @@ context [
 			clear refinement-result/text
 			refinement-result/color: white
 			clear refinements/data
-			foreach-face refs [face/data: false]
+			foreach-face refs [case [
+				face/type = 'check [face/data: false] 
+				face/type = 'field [clear face/text]
+			]]
 		]
 		return
 		text 300 "Input series:"
@@ -39,7 +42,7 @@ context [
 			dialected-delimiter: field 300 font-size 10 [  ;delim DSL
 				local [result]
 				dialected-result/text: mold result: split load input-series/text face/data
-				dialected-result/color: reduce pick [leaf brick] equal? result selected/goal
+				dialected-result/color: reduce pick [green red] equal? result selected/goal
 			]
 			pad 0x60
 			text "Result:"
@@ -56,7 +59,7 @@ context [
 				;probe type? 
 				delim: face/data
 				case [
-					find [word! get-word!] type?/word :delim [delim: get :delim]
+					find [word! get-word! lit-word! path! get-path! lit-path!] type?/word :delim [delim: get :delim]
 					all [
 						block? delim 
 						empty? intersect refinements/data [before after value rule]
@@ -75,11 +78,23 @@ context [
 			return
 			refs: panel [
 				origin 0x0 
-				style ref: check 70 [if face/data [alter refinements/data to-word next face/text]]
-				ref "/before"	ref "/first"	ref "/parts"	ref "/rule"
+				style ref: check 55 [if face/data [alter refinements/data to-word next face/text]]
+				ref "/before"	ref "/first"	ref "/parts"	ref "/rule" 	pad -2x5 text 30 "/limit"
 				return
-				pad 0x-10
-				ref "/after"	ref "/last"		ref "/group"	ref "/value"
+				pad 0x-15
+				ref "/after"	ref "/last"		ref "/group"	ref "/value"	pad -2x0
+				field 40 hint "limit" on-unfocus [
+					either integer? face/data [
+						either find refinements/data 'limit [
+							put refinements/data 'limit face/data
+						][
+							append refinements/data compose [limit (face/data)]
+						]
+					][
+						if found: find refinements/data 'limit [remove/part found 2]
+					]
+					;probe refinements/data
+				]
 			]
 			return
 			text "Result:"

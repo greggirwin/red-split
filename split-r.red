@@ -454,7 +454,9 @@ context [
 		/with opts
 		/local s v ;rule
 	][
-		if with [set bind opts :split-r true]
+		if with [foreach option bind opts :split-r [if word? option [set option true]]]
+		if limit [ct: select opts 'limit]
+		if first [limit: yes ct: 1]
 		;foreach o opts [print [o get o]]
 		case [
 			any [

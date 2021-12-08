@@ -15,17 +15,14 @@ Red []
 ;	]
 	[
 	    id: #01
+		category: "Simple split"
 		input: "a,b,c"
 		goal:  ["a" "b" "c"]
 	]
-;	[
-;	    id: #1b
-;	    input: "a b c"
-;		goal:  ["a" "b" "c"]
-;	]
 	[
 	    id: #02
-	    input: "abc,de,fghi,jk"
+	    category: "Simple split"
+		input: "abc,de,fghi,jk"
 	    goal: ["abc" "de" "fghi" "jk"]
 	]
 	[
@@ -48,10 +45,11 @@ Red []
 	    input: "abc|de/fghi:jk"
 	    goal: ["abc" "de" "fghi" "jk"]
 	]
-;	[
-;	    id: #07
-;	    input: "{key-a=1^/key-b=2:^/key-c=3}"
-;	]
+	[
+		id: #07
+		input: "aaabbbcccddd"
+		goal: ["aaa" "bbb" "ccc" "ddd"]
+	]
 	[
 	    id: #08
 	    input: "PascalCaseName"
@@ -62,6 +60,25 @@ Red []
 	    input: "camelCaseName"
 	    goal: ["camel" "Case" "Name"]
 	]
+	[
+		id: #10
+		input: [0 1 1 3 2 5 4 2 1 6 9]
+		goal: [[0 1] [1 3] [2 5] [4] [2] [1 6 9]]
+	]
+	[
+		id: #11
+		input: [0 1 1 3 2 5 4 2 1 6 9]
+		goal: [[0] [1 1] [3 2] [5 4 2 1] [6] [9]]
+	]
+;	[
+;	    id: #1b
+;	    input: "a b c"
+;		goal:  ["a" "b" "c"]
+;	]
+;	[
+;	    id: #07
+;	    input: "{key-a=1^/key-b=2:^/key-c=3}"
+;	]
 ;	[
 ;	    id: #10
 ;	    input: {"<br>abc<br>de<br><para><br>fghi<br>jk<br>"}
@@ -86,13 +103,13 @@ Red []
 	]
 	[
 	    id: #15
-	    input: [1 2 3 4 5 6]
-	    goal: [[2 4 6] [1 3 5]]
+	    input: "a,b,c,d,e,f,g"
+	    goal: ["a" "b" "c" "d,e,f,g"]
 	]
 	[
 	    id: #16
-	    input: [1 2 3 4 5 6]
-	    goal: [[1 3 5] [2 4 6]]
+	    input: "a,b,c,d,e,f,g"
+	    goal: ["a,b,c,d,e,f" "g"]
 	]
 	[
 	    id: #17
@@ -108,8 +125,10 @@ Red []
 	    id: #19
 	    input: [1 2 3 4 5 6]
 	    goal: [[1 2] [3] [4 5 6]]
-	    hint: "as-delim"
+	    ;hint: "as-delim"
 	]
+	
+	
 	
 ;	[
 ;	    id: #18
