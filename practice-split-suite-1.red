@@ -47,8 +47,8 @@ Red []
 	]
 	[
 		id: #07
-		input: "aaabbbcccddd"
-		goal: ["aaa" "bbb" "ccc" "ddd"]
+		input: "aabbbccccddd"
+		goal: ["aa" "bbb" "cccc" "ddd"]
 	]
 	[
 	    id: #08
@@ -70,27 +70,11 @@ Red []
 		input: [0 1 1 3 2 5 4 2 1 6 9]
 		goal: [[0] [1 1] [3 2] [5 4 2 1] [6] [9]]
 	]
-;	[
-;	    id: #1b
-;	    input: "a b c"
-;		goal:  ["a" "b" "c"]
-;	]
-;	[
-;	    id: #07
-;	    input: "{key-a=1^/key-b=2:^/key-c=3}"
-;	]
-;	[
-;	    id: #10
-;	    input: {"<br>abc<br>de<br><para><br>fghi<br>jk<br>"}
-;	]
-;	[
-;	    id: #11
-;	    input: {"1.2.3-alpha.b+2045.RC3"}
-;	]
-;	[
-;	    id: #12
-;	    input: {"PascalCaseName camelCaseName dash-marked-name under_marked_name"}
-;	]
+	[
+	    id: #12
+	    input: "A split sentence.And another."
+		goal:  [["A" "split" "sentence"] ["And" "another"]]
+	]
 	[
 	    id: #13
 	    input: "YYYYMMDD/HHMMSS"
@@ -126,6 +110,16 @@ Red []
 	    input: [1 2 3 4 5 6]
 	    goal: [[1 2] [3] [4 5 6]]
 	    ;hint: "as-delim"
+	]
+	[
+		id: #20
+		input: [a 1 2 b 4 c 3 6 1]
+		goal: [[a 1 2] [b 4] [c 3 6 1]]
+	]
+	[
+		id: #21
+		input: [a b 1 c 2 d e f 3]
+		goal: [[a b 1] [c 2] [d e f 3]]
 	]
 	
 	
