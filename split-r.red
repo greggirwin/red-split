@@ -353,8 +353,8 @@ context [
 		;/limit ct
 		;/with opts
 	][
-		if with [set [before after first last limit ct] opts]
-		if first [limit: yes ct: 1]
+		;if with [set [before after first last limit ct] opts]
+		;if first [limit: yes ct: 1]
 		results: make block! len: length? delim
 		loop len [append/only results copy []] 
 		res: copy []
