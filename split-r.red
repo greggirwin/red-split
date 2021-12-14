@@ -460,7 +460,7 @@ context [
 		;foreach o opts [print [o get o]]
 		case [
 			any [
-				probe find probe delim-types probe type? :dlm 
+				find delim-types type? :dlm 
 				value 
 				all [
 					any [before after]

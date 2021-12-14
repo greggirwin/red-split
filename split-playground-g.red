@@ -265,7 +265,7 @@ play: context [
                     find [word! get-word!] type?/word :delim [delim: get :delim]
                     all [
                         block? delim 
-                        empty? intersect refinements/data [before after value rule]
+                        empty? intersect refinements/data [value rule];before after
                         not find/match trim/head face/text #"["
                         word? delim/1 
                         any-function? get delim/1
