@@ -1,5 +1,5 @@
 Red [
-    Title:  "Comprative playground for splitting functins in Red"
+    Title:  "Comparative playground for splitting functions in Red"
     Author: "Galen Ivanov"
     Notes:  "Based on code by Toomas Vooglaid and Gregg Irwin"
     status: "WIP"
