@@ -23,10 +23,10 @@ play: context [
   
     task-stats: make object! [
         id: #00
-        desc: ""
+        desc: ""                   ; not used
         input: none
         goal: none
-        hint: ""
+        hint: ""                   ; not used
         time: none                 ; not yet implemented
         dial-status: 'unattempted  ; [unattempted | wrong | correct]
         dial-solution: none        ; stores the last correct solution  
@@ -36,7 +36,8 @@ play: context [
         ref-solution: none          ; stores the last correct solution   
         refinements: copy []        ; stores the refinements for the correct solution
         notes: ""
-        rating: 0                   ; task rating 1 - 10
+        difficulty: 0                   ; task rating 1 - 10
+        importance: 0
         dialected-rating: 0         ; 1 - 10
         refinement-rating: 0        ; 1 - 10
         
@@ -55,7 +56,7 @@ play: context [
             mold t/goal space
             "Dialected: " t/dial-status space
             "Refinements: " t/ref-status space
-            "Time: " t/time
+          ;  "Time: " t/time
         ]
     ]
     
@@ -101,6 +102,7 @@ play: context [
         field 
     ][
         collect [
+            keep [pad 0x-15]
             repeat n 10 [
                 keep to-set-word rejoin [name "-" n]
                 keep type
@@ -156,11 +158,14 @@ play: context [
         clear refinement-result/text
         clear dialected-delimiter/text
         clear refinement-delimiter/text
+        clear task-notes/text
+        task-notes/text: tasks/:n/notes
         if sol: tasks/:n/dial-solution [dialected-delimiter/text: copy sol]
         if sol: tasks/:n/ref-solution  [refinement-delimiter/text: copy sol]
         dialected-result/color: (linen - 10.10.10)
         refinement-result/color: (linen - 10.10.10)
-        update-stars "star" tasks/:n/rating
+        update-stars "star" tasks/:n/difficulty
+        update-stars "importance" tasks/:n/importance
         update-stars "star-d" tasks/:n/dialected-rating
         update-stars "star-r" tasks/:n/refinement-rating
         set-ref-checkboxes n
@@ -171,10 +176,13 @@ play: context [
     make-filename: does [
         t: now
         unless exists? %sessions [make-dir %sessions]
-        rejoin [%sessions/ t/year "-" t/month "-" t/day "-" t/hour "-" t/minute "-" t/second ".txt"]
+        file-name: rejoin [%sessions/ t/year "-" t/month "-" t/day "-" t/hour "-" t/minute "-" t/second ".txt"]
+        info-text/text: rejoin ["File saved: " file-name]
+        file-name
     ]
 
-    stars: make-stars "star" 'star "rating"
+    difficulty: make-stars "star" 'star2 "difficulty"
+    importance: make-stars "importance" 'star2 "importance"
     stars-d: make-stars "star-d" 'star2 "dialected-rating"
     stars-r: make-stars "star-r" 'star2 "refinement-rating"
     
@@ -189,6 +197,7 @@ play: context [
         style lbl: text 430x25 font-color black font-size 11
         style dark: text 430x25 (linen - 10.10.10) font-color black font-size 12
         style fld: field 430x30 (linen + 20.20.20) font-color black font-size 12 data off
+        style question: text 320x25 font-color black font-size 10
         style star: base 28x28 linen "☆" font-size 23 font-color gold
         style star2: base 25x25 linen "☆" font-size 20 font-color gold
         
@@ -197,7 +206,8 @@ play: context [
         pad 0x-5 across (task-boxes) return
         across
         id: text "Task 01" font-size 20 font-color black
-        pad 0x5 (stars) return
+        return
+        ;pad 0x5 (stars) return
         pad 0x-10
         across
         panel linen [
@@ -214,6 +224,7 @@ play: context [
         ]    
         return
         pad 0x-10
+        below
         across
         panel linen [  ; Dialected
             below        
@@ -231,7 +242,7 @@ play: context [
                 append tasks/:cur-task/dial-tries now
                 append/only tasks/:cur-task/dial-tries to-block face/data
                 correct?: equal? result suite/:cur-task/goal
-                dialected-result/color: reduce pick [(green - 5.15.10) brick] correct?
+                dialected-result/color: reduce pick [(green - 5.15.10) (brick + 40.20.30)] correct?
                 either correct? [
                     info-text/text: "Correct!"
                     tasks/:cur-task/dial-status: 'correct
@@ -249,10 +260,12 @@ play: context [
             return below
             panel 400x50 linen [
                 ; to be updated
-                text "[before | after | first | last | once | times | into | any | as-delim | first by then by]"
+                text 380x50 "[before | after | first | last | once | times | into | any | as-delim | first by then by]"
+                font-size 10 font-color black
             ]
             dialected-result: dark
-        ]
+        ]  
+        
         panel linen[  ; Refinemets
             below
             at 0x0 refinements: field hidden data []
@@ -287,7 +300,7 @@ play: context [
                 append/only tasks/:cur-task/ref-tries reduce [face/data copy refinements/data]
                 
                 correct?: equal? result suite/:cur-task/goal
-                refinement-result/color: reduce pick [(green - 5.15.10) brick] correct?
+                refinement-result/color: reduce pick [(green - 5.15.10) (brick + 40.20.30)] correct?
                 either correct? [
                     info-text/text: "Correct!"
                     tasks/:cur-task/ref-status: 'correct
@@ -306,7 +319,7 @@ play: context [
             return below
             refs: panel linen [
                 origin 0x0 
-                style ref: check 65  [alter refinements/data to-word next face/text]
+                style ref: check 85 [alter refinements/data to-word next face/text]
                 ref "/before"    ref "/first"    ref "/parts"    ref "/rule"     pad -2x5 text 30 "/limit"
                 return
                 pad 0x-15
@@ -324,13 +337,21 @@ play: context [
                 ]
             ]
             refinement-result: dark
-        ]    
+        ] return
+        
+        question "How convenient was the dialected solution?" pad 145x0
+        question "How convenient was the refinement-based solution?" return 
+        (stars-d) pad 200x15 (stars-r)  return
+        question "How hard was this task?" pad 145x0 
+        question "Please write down your comments on this task:" return 
+        (difficulty) return
+        question "How important is this usecase?" return 
+        (importance)
+        pad 200x-50 task-notes: area 430x80 (linen + 20.20.20)
+        on-key-down [tasks/:cur-task/notes: copy face/text]
         return
-        pad 0x-20 text "Preferences" font-size 18 font-color black 
-        return
-        text 100x20 "Dialected" pad 0x-10 (stars-d)
-        return text "Refinement-based" pad 0x-10 (stars-r)
-        pad 450x0 button "Save" [write make-filename mold tasks]
+        pad 840x0 button "Save" [write make-filename mold tasks]
+
         return
         info-text: text 900x18 (linen - 10.10.10) "" font-color black font-size 10
     ]
