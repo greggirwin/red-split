@@ -2,7 +2,6 @@ Red [
     Title:  "Comparative playground for splitting functions in Red"
     Author: "Galen Ivanov"
     Notes:  "Based on code by Toomas Vooglaid and Gregg Irwin"
-    status: "WIP"
 ]
 
 #include %split.red
@@ -18,6 +17,9 @@ play: context [
     over-dial: off
     over-ref: off
     prompt: "Enter the delimiter and press <Enter> to split"
+    
+    tabs: [dialected-delimiter dialected-btn refinement-delimiter refinement-btn
+           c1 c2 c3 c4 c5 c6 c7 c8 lmt dialected-delimiter]
     
     cur-task: 1
   
@@ -40,7 +42,7 @@ play: context [
         importance: 0
         dialected-rating: 0         ; 1 - 10
         refinement-rating: 0        ; 1 - 10
-        
+
     ] 
     
     tasks: collect [foreach task suite [keep/only to-block make task-stats task]]
@@ -80,7 +82,7 @@ play: context [
             left: to-set-word rejoin ["Stat-d-" n]  ; dialected
             right: to-set-word rejoin ["Stat-r-" n] ; refinement-based
             keep compose/deep [
-                (left)  task-status on-over [does-on-over face (n)] pad -6x0 
+                (left)  task-status on-over [does-on-over face (n)] pad -3x0 
                 (right) task-status on-over [does-on-over face (n)] 
             ]
         ]
@@ -154,14 +156,16 @@ play: context [
         goal-text/text: mold t/goal
         cur-task: n
         clear refinement-delimiter/text
+        clear dialected-call/text
         clear dialected-result/text
         clear refinement-result/text
+        clear refinement-call/text
         clear dialected-delimiter/text
         clear refinement-delimiter/text
         clear task-notes/text
         task-notes/text: tasks/:n/notes
-        if sol: tasks/:n/dial-solution [dialected-delimiter/text: copy sol]
-        if sol: tasks/:n/ref-solution  [refinement-delimiter/text: copy sol]
+        if sol: tasks/:n/dial-solution [dialected-delimiter/text: form sol]
+        if sol: tasks/:n/ref-solution  [refinement-delimiter/text: form sol]
         dialected-result/color: (linen - 10.10.10)
         refinement-result/color: (linen - 10.10.10)
         update-stars "star" tasks/:n/difficulty
@@ -180,7 +184,130 @@ play: context [
         info-text/text: rejoin ["File saved: " file-name]
         file-name
     ]
+    
+    make-rule: function [
+    data  "Content from user input field"
+    /local fn arg
+    ][
+        compose=: [
+            'compose/deep/only | 'compose/only/deep | 'compose/deep | 'compose/only | 'compose
+            | 'reduce
+        ]
+        val: data
+        case [
+            any [word? val get-word? val][get val]
+            block? val [
+                case [
+                    parse val [['charset | 'make 'bitset!] set arg [string! | block!]] [
+                        charset arg
+                    ]
+                    ; compose or reduce
+                    parse val [set fn compose= set arg [string! | block!]] [
+                        do compose [(fn) arg]
+                    ]
+                    'else [
+                        val
+                    ]
+                ]
+            ]
+            'else [        ; char! integer! string!
+                val
+            ]
+        ]
+    ]
+    
+    check-dialected: func [
+        face
+        /local result correct? rule
+    ][   
 
+        call: reduce ['split <input>]
+        append/only call d: make-rule face/data
+        dialected-call/text: mold/only call
+        
+        if error? set/any 'err try [
+            result: mold split load input-text/text make-rule face/data
+            dialected-result/data: result 
+        ][
+            dialected-result/data: "I don't understand that. Maybe try reduce/compose."
+            print mold err
+        ]
+        
+        append tasks/:cur-task/dial-tries now
+        append tasks/:cur-task/dial-tries append copy [] face/data
+        correct?: equal? load result suite/:cur-task/goal
+        dialected-result/color: reduce pick [(green - 5.15.10) (brick + 40.20.30)] correct?
+        either correct? [
+            info-text/text: "Correct!"
+            tasks/:cur-task/dial-status: 'correct
+            tasks/:cur-task/dial-solution: copy face/text
+            set to-path reduce [to-word rejoin ["Stat-d-" cur-task] 'color] green
+        ][
+            unless tasks/:cur-task/dial-status = 'correct [
+                set to-path reduce [to-word rejoin ["Stat-d-" cur-task] 'color] red
+                tasks/:cur-task/dial-status: 'incorrect
+            ]    
+        ]
+    ]
+    
+    check-refinements: func [
+        face
+        /local result correct? 
+    ][
+        call: copy [<input>]
+        delim: face/data
+        either  error? set/any 'err try [
+            do mold delim
+        ][
+            refinement-result/data: "I don't understand that."
+            print mold err
+        ][
+            case [
+                find [word! get-word! lit-word! path! get-path! lit-path!] type?/word :delim [append call delim delim: get :delim]
+                all [
+                    block? delim 
+                    empty? intersect refinements/data [value rule];before after
+                    not find/match trim/head face/text #"["
+                    word? delim/1 
+                    any-function? get delim/1
+                ][append call delim delim: do delim]
+                'else [append/only call delim]
+            ]
+        
+            result: mold either empty? refinements/data [
+                insert call 'split
+                split-r load input-text/text :delim
+            ][
+                if found: find r-data: copy refinements/data 'limit [lmt: found/2 remove next found]
+                insert/only call to-path append copy [split] r-data
+                if found [append call lmt]
+                split-r/with load input-text/text :delim refinements/data
+            ]
+            refinement-call/text: mold/only call
+            refinement-result/data: result 
+            append tasks/:cur-task/ref-tries now
+            append/only tasks/:cur-task/ref-tries reduce [face/data copy refinements/data]
+            
+            correct?: equal? load result suite/:cur-task/goal
+            refinement-result/color: reduce pick [(green - 5.15.10) (brick + 40.20.30)] correct?
+            either correct? [
+                info-text/text: "Correct!"
+                tasks/:cur-task/ref-status: 'correct
+                tasks/:cur-task/ref-solution: mold/only face/data
+                tasks/:cur-task/refinements: copy refinements/data
+                set to-path reduce [to-word rejoin ["Stat-r-" cur-task] 'color] green
+            ][
+                unless tasks/:cur-task/ref-status = 'correct [
+                    set to-path reduce [to-word rejoin ["Stat-r-" cur-task] 'color] red
+                    tasks/:cur-task/ref-status: 'incorrect
+                ]    
+            ]    
+        ]    
+    ]
+    
+    move-focus: func [face][set-focus get select tabs face]
+    
+    
     difficulty: make-stars "star" 'star2 "difficulty"
     importance: make-stars "importance" 'star2 "importance"
     stars-d: make-stars "star-d" 'star2 "dialected-rating"
@@ -190,25 +317,26 @@ play: context [
         title "Compare dialected and refinement-based split"
         backdrop linen
         
-        on-create [load-task 1]
+        on-create [load-task 1 set-focus dialected-delimiter]
         
-        style task: button 32x32 data off
-        style task-status: base 15x4 white data off
-        style lbl: text 430x25 font-color black font-size 11
-        style dark: text 430x25 (linen - 10.10.10) font-color black font-size 12
-        style fld: field 430x30 (linen + 20.20.20) font-color black font-size 12 data off
+        style task: button 30x30 data off
+        style task-status: base 15x3 white data off
+        style lbl: text 375x25 font-color black font-size 11
+        style dark: text 360x25 (linen - 10.10.10) font-color black font-size 12
+        style dark-short: text 310x25 (linen - 10.10.10) font-color black font-size 10
+        style label: text 55 font-size 10 font-color black
+        style fld: field 320x25 (linen + 20.20.20) font-color black font-size 10 data off
+        style btn: button 35x25 
         style question: text 320x25 font-color black font-size 10
         style star: base 28x28 linen "☆" font-size 23 font-color gold
         style star2: base 25x25 linen "☆" font-size 20 font-color gold
         
         below
-        across (task-buttons) return
-        pad 0x-5 across (task-boxes) return
+        across space 5x5 (task-buttons) return
+        across (task-boxes) return
         across
-        id: text "Task 01" font-size 20 font-color black
-        return
-        ;pad 0x5 (stars) return
-        pad 0x-10
+        id: text "Task 01" font-size 15 font-color black
+        return pad 0x-10
         across
         panel linen [
             below
@@ -223,47 +351,27 @@ play: context [
             goal-text: dark
         ]    
         return
-        pad 0x-10
+        pad 0x-15
         below
         across
         panel linen [  ; Dialected
             below        
             lbl  "Please specify appropriate delimiter for dialected split:"
             pad 0x-10 across
-            dialected-delimiter: fld [
-                local [result correct? rule]
-                if word? rule: face/data [rule: get rule]
-                result: try [split load input-text/text rule]
-                dialected-result/text: either error? result [
-                    "Unknown rule"    
-                ][
-                    mold result
-                ]
-                append tasks/:cur-task/dial-tries now
-                append/only tasks/:cur-task/dial-tries to-block face/data
-                correct?: equal? result suite/:cur-task/goal
-                dialected-result/color: reduce pick [(green - 5.15.10) (brick + 40.20.30)] correct?
-                either correct? [
-                    info-text/text: "Correct!"
-                    tasks/:cur-task/dial-status: 'correct
-                    tasks/:cur-task/dial-solution: mold face/data
-                    set to-path reduce [to-word rejoin ["Stat-d-" cur-task] 'color] green
-                ][
-                    unless tasks/:cur-task/dial-status = 'correct [
-                        set to-path reduce [to-word rejoin ["Stat-d-" cur-task] 'color] red
-                    ]    
-                ]
-                correct?: false
-                
-            ]
+            dialected-delimiter: fld [check-dialected face]
             on-over [info-text/text: either over-dial: not over-dial [prompt][""]]
+            on-key-down [if event/key = tab [move-focus 'dialected-delimiter]]
+            dialected-btn: btn "Split" [check-dialected dialected-delimiter]
+            on-key-down [if event/key = tab [move-focus 'dialected-btn]]
             return below
-            panel 400x50 linen [
-                ; to be updated
-                text 380x50 "[before | after | first | last | once | times | into | any | as-delim | first by then by]"
+            panel 375x50 linen [
+                text 350x50 "[before | after | first | last | once | times | into | as-delim | first by then by]"
                 font-size 10 font-color black
             ]
-            dialected-result: dark
+            across label "Your call:" 
+            dialected-call: dark-short "here" return
+            across label "Result"
+            dialected-result: dark-short
         ]  
         
         panel linen[  ; Refinemets
@@ -271,59 +379,26 @@ play: context [
             at 0x0 refinements: field hidden data []
             lbl "Please specify delimiter and select appropriate refinements:"
             pad 0x-10 across
-            refinement-delimiter: fld [
-                local [result correct?]
-                delim: face/data
-                case [
-                    find [word! get-word!] type?/word :delim [delim: get :delim]
-                    all [
-                        block? delim 
-                        empty? intersect refinements/data [value rule];before after
-                        not find/match trim/head face/text #"["
-                        word? delim/1 
-                        any-function? get delim/1
-                    ][delim: do delim]
-                ]
-                result: try [
-                    either empty? refinements/data [
-                        split-r load input-text/text :delim
-                    ][
-                        split-r/with load input-text/text :delim refinements/data
-                    ]
-                ]    
-                refinement-result/text: either error? result [
-                    "Unknown rule"    
-                ][
-                    mold result
-                ]
-                append tasks/:cur-task/ref-tries now
-                append/only tasks/:cur-task/ref-tries reduce [face/data copy refinements/data]
-                
-                correct?: equal? result suite/:cur-task/goal
-                refinement-result/color: reduce pick [(green - 5.15.10) (brick + 40.20.30)] correct?
-                either correct? [
-                    info-text/text: "Correct!"
-                    tasks/:cur-task/ref-status: 'correct
-                    tasks/:cur-task/ref-solution: mold face/data
-                    tasks/:cur-task/refinements: copy refinements/data
-                    set to-path reduce [to-word rejoin ["Stat-r-" cur-task] 'color] green
-                ][
-                    unless tasks/:cur-task/ref-status = 'correct [
-                        set to-path reduce [to-word rejoin ["Stat-r-" cur-task] 'color] red
-                    ]    
-                ]
-            ]
-            
-            on-over [info-text/text: either over-ref: not over-ref [prompt][""]]
+            refinement-delimiter: fld [check-refinements face]
+            on-key-down [if event/key = tab [move-focus 'refinement-delimiter]]
+            refinement-btn: btn "Split" [check-refinements refinement-delimiter]
+            on-key-down [if event/key = tab [move-focus 'refinement-btn]]
 
             return below
             refs: panel linen [
                 origin 0x0 
-                style ref: check 85 [alter refinements/data to-word next face/text]
-                ref "/before"    ref "/first"    ref "/parts"    ref "/rule"     pad -2x5 text 30 "/limit"
+                style ref: check 70 [alter refinements/data to-word next face/text]
+                c1: ref "/before" on-key-down [if event/key = tab [move-focus 'c1]]
+                c3: ref "/first"  on-key-down [if event/key = tab [move-focus 'c3]]
+                c5: ref "/parts"  on-key-down [if event/key = tab [move-focus 'c5]]
+                c7: ref "/rule"   on-key-down [if event/key = tab [move-focus 'c7]]
+                pad -2x5 text 30 "/limit"
                 return
                 pad 0x-15
-                ref "/after"    ref "/last"        ref "/group"    ref "/value"    pad -2x0
+                c2: ref "/after"  on-key-down [if event/key = tab [move-focus 'c2]]
+                c4: ref "/last"   on-key-down [if event/key = tab [move-focus 'c4]]
+                c6: ref "/group"  on-key-down [if event/key = tab [move-focus 'c6]]
+                c8: ref "/value"  on-key-down [if event/key = tab [move-focus 'c8]] pad -2x0
                 lmt: field 40 hint "limit" on-unfocus [
                     either integer? face/data [
                         either find refinements/data 'limit [
@@ -335,24 +410,30 @@ play: context [
                         if found: find refinements/data 'limit [remove/part found 2]
                     ]
                 ]
+                on-key-down [if event/key = tab [move-focus 'lmt]]
             ]
-            refinement-result: dark
+            across label "Your call:"
+            refinement-call: dark-short "" return
+            across label "Result"
+            refinement-result: dark-short
+            
         ] return
         
-        question "How convenient was the dialected solution?" pad 145x0
+        
+        question "How convenient was the dialected solution?" pad 85x0
         question "How convenient was the refinement-based solution?" return 
-        (stars-d) pad 200x15 (stars-r)  return
-        question "How hard was this task?" pad 145x0 
-        question "Please write down your comments on this task:" return 
+        (stars-d) pad 190x15 (stars-r)  return
+        question "How hard was this task?"
+        pad 90x0 question "Please write down your comments on this task:" return 
         (difficulty) return
         question "How important is this usecase?" return 
         (importance)
-        pad 200x-50 task-notes: area 430x80 (linen + 20.20.20)
+        pad 190x-35 task-notes: area 360x70 (linen + 20.20.20)
         on-key-down [tasks/:cur-task/notes: copy face/text]
         return
-        pad 840x0 button "Save" [write make-filename mold tasks]
-
+        pad 710x0 button "Save" [write make-filename mold tasks]
+        
         return
-        info-text: text 900x18 (linen - 10.10.10) "" font-color black font-size 10
+        info-text: text 775x18 (linen - 10.10.10) "" font-color black font-size 10
     ]
 ]
