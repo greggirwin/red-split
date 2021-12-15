@@ -406,7 +406,7 @@ context [
 		;Gather anything not yet added
 		forall results [
 			either last? results [
-				if not empty? results/1 [append/only out results/1]
+				if not empty? results/1 [append out results/1]
 			][
 				if not empty? results/1 [append/only results/2 results/1]
 			]
