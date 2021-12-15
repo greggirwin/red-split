@@ -355,9 +355,10 @@ context [
 	][
 		;if with [set [before after first last limit ct] opts]
 		;if first [limit: yes ct: 1]
+		
+		;Prepare results
 		results: make block! len: length? delim
 		loop len [append/only results copy []] 
-		res: copy []
 		forall delim [
 			i: index? delim
 			results: at head results i
@@ -382,6 +383,9 @@ context [
 			]
 		]
 		results: head results
+		
+		;Build the rule
+		res: copy []
 		forall delim [
 			append res case [
 				last? delim [compose/deep/only [s: [(delim/1) | end]]]
@@ -397,7 +401,17 @@ context [
 		append res compose/deep [skip opt [end s: (tmp)]]
 		foreach o results [clear o]
 		res: compose/deep res
-		parse series [collect any [res]]
+		out: parse series [collect any res]
+		
+		;Gather anything not yet added
+		forall results [
+			either last? results [
+				if not empty? results/1 [append/only out results/1]
+			][
+				if not empty? results/1 [append/only results/2 results/1]
+			]
+		]
+		out
 	]
 	
 	split-by-rule: function [
