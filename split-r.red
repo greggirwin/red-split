@@ -181,13 +181,18 @@ context [
 			]
 		][
 			find-next: case [
+				all [before after][[pos: find any [find/match/tail series delim  series] delim  pos1: find/match/tail pos delim]]
 				before [[pos: find any [find/match/tail series delim  series] delim]]
 				after  [[pos: find/tail series delim]]
-				'else  [[pos: find series delim pos1: find/match/tail pos delim]]
+				'else  [[pos: find series delim  pos1: find/match/tail pos delim]]
 			]
 			keep-found: [
 				append/only result copy/part series pos
-				series: either any [before after][pos][pos1]
+				series: case [
+					all [before after][append/only result copy/part pos pos1 pos1]
+					any [before after][pos]
+					'else [pos1]
+				]
 				if all [tail? series not any [before after]][
 					append/only result copy series
 				]
@@ -455,18 +460,20 @@ context [
 	set 'split-r function [
 		"Split a series into parts, by delimiter, size, number, function, type, or advanced rules"
 		series [series!] "The series to split"
-		dlm    "Dialected rule (block), part size (integer), predicate (function), or delimiter." 
-		/before
-		/after
-		/first
-		/last
-		/parts
-		/group
-		/limit ct
-		/value
-		/rule
-		/with opts
-		/local s v ;rule
+		dlm    "Delimiter can be rule (block), part size or number of parts (integer), predicate (function), or some other delimiter." 
+		/before "Split series before the given delimiter"
+		/after  "Split series after the given delimiter"
+		/first  "Split series on first occurrence of the delimiter"
+		/last   "Split series on last occurrence of the delimiter"
+		/parts  "Split series proportionally into as many parts"
+		/group  "Split series on multiple levels (dlm is block of delimiters for each level from lowest to highest)"
+		/limit  "Split limited times only"
+			ct  "Times to split"
+		/value  "Treat delimiter as simple value without special meaning"
+		/rule   "Interpret delimiter as parse rule"
+		/with   "Apply options to the function"
+		   opts "Options to apply"
+		/local s v
 	][
 		if with [foreach option bind opts :split-r [if word? option [set option true]]]
 		if limit [ct: select opts 'limit]
