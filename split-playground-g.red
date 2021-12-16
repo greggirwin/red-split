@@ -186,7 +186,7 @@ play: context [
         
         sol: refinement-delimiter/text: switch tasks/:n/ref-status [
             correct  [tasks/:n/ref-solution]
-            incorrect [probe form first load last tasks/:n/ref-tries]
+            incorrect [mold first load last tasks/:n/ref-tries]
         ]
         unless empty? sol [check-refinements refinement-delimiter]
 
@@ -374,6 +374,8 @@ play: context [
 ; -------------------------------------------------
     start-session
 ; ------------------------------------------------
+
+    
     
     view compose [
         title "Compare dialected and refinement-based split"
