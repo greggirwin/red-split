@@ -357,6 +357,7 @@ play: context [
     ]
     
     start-session: does [
+	    make-dir %sessions/
         tasks: init-tasks
         session-file: rejoin [
             %sessions/practice-split-
@@ -388,6 +389,8 @@ play: context [
             info-text/text: rejoin ["Session: " copy/part session-file find session-file dot]
             set-focus dialected-delimiter
         ]
+		
+		on-close [save-session]
         
         style task: button 30x30 data off
         style task-status: base 15x3 white data off
