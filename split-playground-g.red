@@ -6,20 +6,25 @@ Red [
 
 #include %split.red
 #include %split-r.red
+#include %help.red
 
 play: context [
-    
+
     suite: #include %practice-split-suite-1.red
+    tasks: make block! 50
     len: length? suite
-    tests: collect [repeat i len [keep rejoin ["Task #" i]]]
-    status: copy ""
-    
     over-dial: off
     over-ref: off
     prompt: "Enter the delimiter and press <Enter> to split"
+    color-right: 60.230.120
+    color-wrong: brick + 50.70.40
+    session-file: none
     
     tabs: [dialected-delimiter dialected-btn refinement-delimiter refinement-btn
            c1 c2 c3 c4 c5 c6 c7 c8 lmt dialected-delimiter]
+           
+    clrs: [unattempted: white correct: color-right incorrect: color-wrong]
+    clrs-b: [unattempted: (linen - 10.10.10) correct: color-right incorrect: color-wrong]
     
     cur-task: 1
   
@@ -29,23 +34,21 @@ play: context [
         input: none
         goal: none
         hint: ""                   ; not used
-        time: none                 ; not yet implemented
         dial-status: 'unattempted  ; [unattempted | wrong | correct]
-        dial-solution: none        ; stores the last correct solution  
+        dial-solution: ""        ; stores the last correct solution  
         dial-tries: copy []
         ref-status: 'unattempted
         ref-tries: copy []
-        ref-solution: none          ; stores the last correct solution   
+        ref-solution: ""          ; stores the last correct solution   
         refinements: copy []        ; stores the refinements for the correct solution
         notes: ""
         difficulty: 0                   ; task rating 1 - 10
         importance: 0
         dialected-rating: 0         ; 1 - 10
         refinement-rating: 0        ; 1 - 10
-
     ] 
     
-    tasks: collect [foreach task suite [keep/only to-block make task-stats task]]
+     init-tasks: does [collect [foreach task suite [keep/only to-block make task-stats task]]]
     
     update-status: func [
         n [number!] {Task number}
@@ -58,7 +61,6 @@ play: context [
             mold t/goal space
             "Dialected: " t/dial-status space
             "Refinements: " t/ref-status space
-          ;  "Time: " t/time
         ]
     ]
     
@@ -71,8 +73,8 @@ play: context [
         repeat n len [
             keep compose/deep [
                 task (form n)
+                [load-task (n) set-focus dialected-delimiter]
                 on-over [does-on-over face (n)]
-                on-down [load-task (n)]
             ]
         ]    
     ]
@@ -87,7 +89,6 @@ play: context [
             ]
         ]
     ]
-
 
     star-callback: func [
         name
@@ -104,7 +105,7 @@ play: context [
         field 
     ][
         collect [
-            keep [pad 0x-15]
+            keep [pad 0x-15] 
             repeat n 10 [
                 keep to-set-word rejoin [name "-" n]
                 keep type
@@ -149,40 +150,55 @@ play: context [
         ]
     ]
     
+    update-task-stats: does [
+        repeat n length? tasks [
+            left: to-path  reduce [to-word rejoin ["Stat-d-" n] 'color]  ; dialected
+            right: to-path reduce [to-word rejoin ["Stat-r-" n] 'color]  ; refinement-based
+            set left  do select clrs tasks/:n/dial-status
+            set right do select clrs tasks/:n/ref-status
+        ]
+    ]
+    
     load-task: func [n /local t][
         t: suite/:n
         id/text: rejoin ["Task " form t/id]
         input-text/text: mold t/input
         goal-text/text: mold t/goal
         cur-task: n
-        clear refinement-delimiter/text
-        clear dialected-call/text
+        clear dialected-delimiter/text
         clear dialected-result/text
+        clear dialected-call/text
+        clear refinement-delimiter/text
         clear refinement-result/text
         clear refinement-call/text
-        clear dialected-delimiter/text
-        clear refinement-delimiter/text
         clear task-notes/text
-        task-notes/text: tasks/:n/notes
-        if sol: tasks/:n/dial-solution [dialected-delimiter/text: form sol]
-        if sol: tasks/:n/ref-solution  [refinement-delimiter/text: form sol]
-        dialected-result/color: (linen - 10.10.10)
-        refinement-result/color: (linen - 10.10.10)
+        task-notes/text: copy tasks/:n/notes
+        dialected-result/color: do select clrs-b tasks/:n/dial-status
+        refinement-result/color: do select clrs-b tasks/:n/ref-status
+        
+        set-ref-checkboxes n
+        
+        sol: dialected-delimiter/text: switch tasks/:n/dial-status [
+            correct  [tasks/:n/dial-solution]
+            incorrect [last tasks/:n/dial-tries]
+        ]
+        unless empty? sol [check-dialected dialected-delimiter]
+        
+        sol: refinement-delimiter/text: switch tasks/:n/ref-status [
+            correct  [tasks/:n/ref-solution]
+            incorrect [probe form first load last tasks/:n/ref-tries]
+        ]
+        unless empty? sol [check-refinements refinement-delimiter]
+
         update-stars "star" tasks/:n/difficulty
         update-stars "importance" tasks/:n/importance
         update-stars "star-d" tasks/:n/dialected-rating
         update-stars "star-r" tasks/:n/refinement-rating
-        set-ref-checkboxes n
     ]
-    
-    ;probe task-boxes
-    
+        
     make-filename: does [
         t: now
-        unless exists? %sessions [make-dir %sessions]
-        file-name: rejoin [%sessions/ t/year "-" t/month "-" t/day "-" t/hour "-" t/minute "-" t/second ".txt"]
-        info-text/text: rejoin ["File saved: " file-name]
-        file-name
+        rejoin [t/year "-" t/month "-" t/day "-" t/hour "-" t/minute "-" t/second]
     ]
     
     make-rule: function [
@@ -222,7 +238,8 @@ play: context [
     ][   
 
         call: reduce ['split <input>]
-        append/only call d: make-rule face/data
+        ;append/only call make-rule face/text
+        append/only call face/data
         dialected-call/text: mold/only call
         
         if error? set/any 'err try [
@@ -234,17 +251,17 @@ play: context [
         ]
         
         append tasks/:cur-task/dial-tries now
-        append tasks/:cur-task/dial-tries append copy [] face/data
+        append tasks/:cur-task/dial-tries append copy [] mold face/data
         correct?: equal? load result suite/:cur-task/goal
-        dialected-result/color: reduce pick [(green - 5.15.10) (brick + 40.20.30)] correct?
+        dialected-result/color: reduce pick [color-right color-wrong] correct?
         either correct? [
             info-text/text: "Correct!"
             tasks/:cur-task/dial-status: 'correct
             tasks/:cur-task/dial-solution: copy face/text
-            set to-path reduce [to-word rejoin ["Stat-d-" cur-task] 'color] green
+            set to-path reduce [to-word rejoin ["Stat-d-" cur-task] 'color] color-right
         ][
             unless tasks/:cur-task/dial-status = 'correct [
-                set to-path reduce [to-word rejoin ["Stat-d-" cur-task] 'color] red
+                set to-path reduce [to-word rejoin ["Stat-d-" cur-task] 'color] color-wrong
                 tasks/:cur-task/dial-status: 'incorrect
             ]    
         ]
@@ -266,15 +283,14 @@ play: context [
                 find [word! get-word! lit-word! path! get-path! lit-path!] type?/word :delim [append call delim delim: get :delim]
                 all [
                     block? delim 
-                    empty? intersect refinements/data [value rule];before after
+                    empty? intersect refinements/data [value rule]
                     not find/match trim/head face/text #"["
                     word? delim/1 
                     any-function? get delim/1
                 ][append call delim delim: do delim]
                 'else [append/only call delim]
-            ]
-        
-            result: mold either empty? refinements/data [
+            ]        
+            refinement-result/text: result: mold either empty? refinements/data [
                 insert call 'split
                 split-r load input-text/text :delim
             ][
@@ -284,21 +300,20 @@ play: context [
                 split-r/with load input-text/text :delim refinements/data
             ]
             refinement-call/text: mold/only call
-            refinement-result/data: result 
             append tasks/:cur-task/ref-tries now
-            append/only tasks/:cur-task/ref-tries reduce [face/data copy refinements/data]
+            append/only tasks/:cur-task/ref-tries mold reduce [face/data copy refinements/data]
             
             correct?: equal? load result suite/:cur-task/goal
-            refinement-result/color: reduce pick [(green - 5.15.10) (brick + 40.20.30)] correct?
+            refinement-result/color: reduce pick [color-right color-wrong] correct?
             either correct? [
                 info-text/text: "Correct!"
                 tasks/:cur-task/ref-status: 'correct
-                tasks/:cur-task/ref-solution: mold/only face/data
+                tasks/:cur-task/ref-solution: copy face/text
                 tasks/:cur-task/refinements: copy refinements/data
-                set to-path reduce [to-word rejoin ["Stat-r-" cur-task] 'color] green
+                set to-path reduce [to-word rejoin ["Stat-r-" cur-task] 'color] color-right
             ][
                 unless tasks/:cur-task/ref-status = 'correct [
-                    set to-path reduce [to-word rejoin ["Stat-r-" cur-task] 'color] red
+                    set to-path reduce [to-word rejoin ["Stat-r-" cur-task] 'color] color-wrong
                     tasks/:cur-task/ref-status: 'incorrect
                 ]    
             ]    
@@ -307,17 +322,68 @@ play: context [
     
     move-focus: func [face][set-focus get select tabs face]
     
-    
     difficulty: make-stars "star" 'star2 "difficulty"
     importance: make-stars "importance" 'star2 "importance"
     stars-d: make-stars "star-d" 'star2 "dialected-rating"
     stars-r: make-stars "star-r" 'star2 "refinement-rating"
     
+    confirm: has [answer][
+        answer: false
+        view/no-wait/flags [
+            Title "Save changes?"
+            below
+            text "Do you want to save the current session?"
+            across
+            button "Yes" [answer: true unview]
+            button "No" [answer: false unview]
+            
+        ][modal no-min no-max]
+        do-events
+        answer
+    ]
+    
+    load-session: does [
+        if session-file: request-file/file %sessions/ [
+            if exists? session-file [tasks: reduce load session-file]
+            update-task-stats
+            load-task 1
+            info-text/text: form session-file
+        ]
+    ]
+    
+    save-session: does [
+        write session-file mold tasks
+        info-text/text: form rejoin [session-file " was saved"]
+    ]
+    
+    start-session: does [
+        tasks: init-tasks
+        session-file: rejoin [
+            %sessions/practice-split-
+            make-filename
+            %.red
+        ]
+    ]
+    
+    new-session: does [
+        start-session
+        update-task-stats
+        load-task 1
+    ]
+    
+; -------------------------------------------------
+    start-session
+; ------------------------------------------------
+    
     view compose [
         title "Compare dialected and refinement-based split"
         backdrop linen
         
-        on-create [load-task 1 set-focus dialected-delimiter]
+        on-create [
+            load-task 1
+            info-text/text: rejoin ["Session: " copy/part session-file find session-file dot]
+            set-focus dialected-delimiter
+        ]
         
         style task: button 30x30 data off
         style task-status: base 15x3 white data off
@@ -369,7 +435,7 @@ play: context [
                 font-size 10 font-color black
             ]
             across label "Your call:" 
-            dialected-call: dark-short "here" return
+            dialected-call: dark-short "" return
             across label "Result"
             dialected-result: dark-short
         ]  
@@ -380,6 +446,7 @@ play: context [
             lbl "Please specify delimiter and select appropriate refinements:"
             pad 0x-10 across
             refinement-delimiter: fld [check-refinements face]
+            on-over [info-text/text: either over-dial: not over-dial [prompt][""]]
             on-key-down [if event/key = tab [move-focus 'refinement-delimiter]]
             refinement-btn: btn "Split" [check-refinements refinement-delimiter]
             on-key-down [if event/key = tab [move-focus 'refinement-btn]]
@@ -419,7 +486,6 @@ play: context [
             
         ] return
         
-        
         question "How convenient was the dialected solution?" pad 85x0
         question "How convenient was the refinement-based solution?" return 
         (stars-d) pad 190x15 (stars-r)  return
@@ -429,10 +495,14 @@ play: context [
         question "How important is this usecase?" return 
         (importance)
         pad 190x-35 task-notes: area 360x70 (linen + 20.20.20)
-        on-key-down [tasks/:cur-task/notes: copy face/text]
+        on-unfocus [tasks/:cur-task/notes: copy face/text]
         return
-        pad 710x0 button "Save" [write make-filename mold tasks]
-        
+        pad 410x0
+        button "Help" [show-help]
+        pad 100x0
+        button "New"  [if confirm [save-session] new-session]
+        button "Load" [if confirm [save-session] load-session]
+        button "Save" [save-session]
         return
         info-text: text 775x18 (linen - 10.10.10) "" font-color black font-size 10
     ]
