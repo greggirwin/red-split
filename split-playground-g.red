@@ -371,6 +371,8 @@ play: context [
         load-task 1
     ]
     
+	
+	
 ; -------------------------------------------------
     start-session
 ; ------------------------------------------------
@@ -389,7 +391,7 @@ play: context [
         
         style task: button 30x30 data off
         style task-status: base 15x3 white data off
-        style lbl: text 375x25 font-color black font-size 11
+        style lbl: text 375 font-color black font-size 10
         style dark: text 360x25 (linen - 10.10.10) font-color black font-size 12
         style dark-short: text 310x25 (linen - 10.10.10) font-color black font-size 10
         style label: text 55 font-size 10 font-color black
