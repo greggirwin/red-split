@@ -436,7 +436,8 @@ context [
 			rule: [
 				any [s: 
 				  delim e: [
-					if (before) opt [if (not head? s) keep (copy/part head s s)] :s keep copy _ thru end
+				    if (all [before after]) keep (copy/part head s s) keep (copy/part s e) keep copy _ thru end
+				  | if (before) opt [if (not head? s) keep (copy/part head s s)] :s keep copy _ thru end
 				  | if (after) keep (copy/part head s e) [end | keep copy _ thru end]
 				  | keep (copy/part head s s) :e keep copy _ thru end
 				  ]
@@ -447,7 +448,8 @@ context [
 		][
 			rule: [
 				any [
-				  if (before) keep copy _ [opt delim to [delim | end]]
+				  if (all [before after]) keep copy _ to [delim | end] opt [keep copy _ delim]
+				| if (before) keep copy _ [opt delim to [delim | end]]
 				| if (after)  keep copy _  thru [delim opt end | end]
 				| keep copy _ to [delim | end] opt [delim s: opt [end keep (copy s)] :s]
 				] [end | keep copy _ to end]
