@@ -1,0 +1,149 @@
+Red []
+{Dialected split
+
+===The SPLIT Interface
+
+  USAGE:
+     SPLIT series dlm
+
+  DESCRIPTION: 
+     Split a series into parts, by delimiter, size, number, function, type, 
+     or advanced rules. 
+     
+     SPLIT is a function! value.
+
+  ARGUMENTS:
+     series [series!] "The series to split."
+     dlm    {Dialected rule (block), part size (integer), predicate (function),
+             or separator.}
+
+That's all you get right now. Why? Because this tool is about exploration,
+seeing what people try when they /don't/ know what to do, what results they
+expect, and how many things "just work".
+
+It's important to note that you may need to use `reduce` or `compose`
+when writing your rule.
+
+===Keywords
+
+OK, you win, here are some hints when using a dialected block as your
+delimiting rule. Note that *first* is listed twice, but only to show
+that its context matters.
+
+    every once into parts as-delim
+    first last
+    at before after
+    times
+    first by then
+
+What happens if your rule isn't recognized as a *split* dialect input?
+It's treated as a *parse* rule. Given that, does *split* still have
+value? You bet it does, just as *collect* hides details, so does *split*,
+and it makes your intent clear, which is the ultimate goal.
+
+
+===Types of Splitting
+
+<By Delimiter>(#Split By Delimiter)
+
+<At an Offset/Index/Position>(#Split at a Position)
+
+<Into Equal Parts>(#Split Into Equal Parts)
+
+<Into N Parts>(#Split Into N Parts)
+
+<Into Uneven Parts>(#Split Into Uneven Parts)
+
+<Up To N Times>(#Split Up To N Times)
+
+<By Test Predicate(s)>(#Split By Test Predicates)
+
+<Using Advanced Rules>(#Split Using Advanced Rules)
+
+
+===Split By Delimiter
+
+Delimited data is a well known format, using a <delimiter>(https://en.wikipedia.org/wiki/Delimiter)
+to indicate where one thing stops and the next thing starts. 
+
+This is the most widely used form of splitting. And many languages have
+a *split* function. They also almost all follow a fixed pattern with
+regard to their spec: *split \[string delimiter opt limit\]*  I have a
+hard time believing that the *limit* feature is /so/ widely useful that
+it's there on merit. Everybody just copied what came before. Or they
+say to use regexes. Some langs also added a refinement to omit empty
+results.
+
+What this model lacks is /any other/ useful feature, like splitting at
+only the first or last occurrence of the separator. Or /including/ the
+separator in the result. For example, you want to split /after/ *:*, 
+keeping it with the left part; or split /before/ uppercase characters,
+keeping them with the right part. Rust adds some variants, with the
+result of having 13 different *split\** functions.
+
+Most telling, for Red, is that other langs only consider strings as
+the input and characters (sometimes strings), as the separator. This
+makes sense, but is <short-sighted>(#FutureThought) for Red.
+
+
+===Split Once
+
+Split just once, giving two parts. The data may be marked by a 
+delimiting value, or by the size of the either the first or last
+part.
+
+===Split Into Equal Parts
+
+Use cases:
+
+*Splitting a large file:* Each part should be no more than N bytes or
+may be a dataset where each record is a fixed size. Of course this use
+case has limits, and a stream based approach, reading and writing each
+part in sequence should be used for very large files.
+
+*Breaking work up:* When data has the potential to cause processing
+errors, it can be helpful to work on smaller parts of the data, both
+for error handling and user interactions. This is especially true when
+cumulative errors or resource constraints come into play.
+
+===Split Into N Parts
+
+Use cases:
+
+*Distributing work:* You have N workers and want to give each a part of
+the data to work on.
+
+*Secure Fragments:* Each part is useless, and can't be decrypted, without
+all the others.
+
+
+===Split Into Uneven Parts
+
+*Small Fixed Values:* _YYYYMMDD_ into _\[YYYY MM DD\]_, or 
+_Mon, 24 Nov 1997_ into \["Mon" "24" "Nov" "1997"\].
+
+*Tabular Data:* The much-maligned, but still useful, flat file.
+
+*Schema Based Data:* A schema\/header tells you the size of each part in
+a payload.
+
+*Historical Data:* Legacy formats are often based on fixed size fields.
+
+
+===Split Up To N Times
+
+When you want to split more than once, but less than every time. This
+can be useful if you want to check individual parts, and not split
+any more than necessary once you find what you want. Or when there's
+more than one "header" part but a trailing payload that may contain
+separators.
+
+
+===Split by Test Predicates
+
+
+
+===Split Using Advanced Rules
+
+Think *parse+collect*.
+}

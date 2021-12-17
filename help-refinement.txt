@@ -1,0 +1,120 @@
+Red []
+{Refinement-based split
+
+===The SPLIT Interface
+
+	USAGE:
+	   SPLIT series dlm
+
+	DESCRIPTION: 
+	   Split a series into parts, by delimiter, size, number, function, type, or advanced rules. 
+	   SPLIT is a function! value.
+
+	ARGUMENTS:
+	   series       [series!] "The series to split."
+	   dlm          {Delimiter can be rule (block), part size or number of parts (integer), predicate (function), or some other delimiter.}
+
+	REFINEMENTS:
+	   /before      => Split series before the given delimiter.
+	   /after       => Split series after the given delimiter.
+	   /first       => Split series on first occurrence of the delimiter.
+	   /last        => Split series on last occurrence of the delimiter.
+	   /parts       => Split series proportionally into <dlm> parts.
+	   /group       => Split series on multiple levels (<dlm> is block of delimiters for each level from lowest to highest).
+	   /limit       => Split limited times only.
+		  ct            "Times to split."
+	   /value       => Treat delimiter as simple value without special meaning.
+	   /rule        => Interpret delimiter as parse rule.
+	   /with        => Apply options to the function.
+		  opts          "Options to apply."
+
+===Types of Splitting
+
+<By Delimiter>(#Split By Delimiter)
+
+<Into Equal Parts>(#Split Into Equal Parts)
+
+<Into N Parts>(#Split Into N Parts)
+
+<Into Uneven Parts>(#Split Into Uneven Parts)
+
+<Limited Times, First, Last>(#Split Up To N Times)
+
+<By Test Predicate(s)>(#Split By Test Predicates)
+
+<Into Multiple Levels>(#Split Into Multiple Levels)
+
+<Using Advanced Rules>(#Split Using Advanced Rules)
+
+
+===Split By Delimiter
+
+"Simple" delimiter can generally be anything that doesn't have special meaning
+described in following sections. If delimiter has special meaning by default 
+(e.g. integer or block of integers) then it can be forced into simple delimiter 
+by using refinement `\/value`.
+
+===Split Into Equal Parts
+
+Integer delimiter splits series into as many equal parts as fits into series. 
+The last part may be shorter, containing all elements left over from last 
+full-sized part. 
+
+If any of refinements `\/value`, `\/before` or `\/after` is used, then integer is 
+understood to loose its special meaning and is used as simple value to split at.
+
+===Split Into N Parts
+
+Integer with `\/parts` refinement splits series into exactly \<dlm\> parts 
+distributing elements so that the length? of no part will differ by more 
+than one element from the others.
+
+Again, some refinements (`\/value`, `\before`, `\/after`) will cancel special 
+meaning.
+
+===Split Into Uneven Parts
+
+Block of integers splits series into repeating pattern of variable-length 
+records. Good to use in cases, where it is hard to determine other common 
+simple delimiters and we have either single record or repeating formatting.
+
+===Split Up To N Times
+
+Split \<dlm\> times, or only once -- `first` or `last`.
+
+===Split by Test Predicates
+
+Here you can use either standard or custom functions with one or two arguments.
+In case of two arguments, two consecutive elements in series are checked to 
+satisfy the func, e.g. `:\<\>` splits at position, where two consecutive 
+elements are not equal. `:=` and `:equal?` splits when they are equal. 
+By default two-argument functions split between elements.
+
+In case a func has single argument, it is implicitly understood to be
+next element in series, e.g. `:even?` splits at even elements. To split 
+before or after you need to use corresponding refinements. When datatype of 
+single argument in a custom function is specified as `\[series!\]`, then 
+the argument represents series at given position, not next element. This way
+complicated checks can be specified for splitting.
+
+===Split Into Multiple Levels
+
+Series can be split into multiple levels by using refinement `\/group` and 
+block delimiter consisting either of integers, or simple delimiters and 
+parse rules. 
+
+When integer-block is used, then first integer determines the size of 
+top-level groups, last integer determines the length of lowest chunks, 
+and any integers in between determine sizes of intermediate-level blocks.
+
+When block contains non-integer delimiters, then first splits series on 
+lowest level and each consequent delimiter splits at next upper level.
+
+===Split Using Advanced Rules
+
+Use parse rule to specify delimiter. It an contain alternatives and parse 
+keywords to determine "fuzzy" delimiter. Use `\/rule` refinement to indicate
+delimiter needs to be interpreted as parse rule (this is not necessary in 
+multilevel splitting, for which parse is used anyway).
+
+}

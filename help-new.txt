@@ -1,0 +1,156 @@
+Red []
+
+{Practice-Split: Hone Your Skill and Whet Your Appetite
+
+===Introduction: Part 1
+
+This app is an experiment. Instructions are intentionally vague at
+times, to see what you try, naturally, without looking at a detailed
+spec. Why? Because people tend to ignore documentation and do just
+that, try things until they get it right. That does *not* mean we'll
+take what people try and make that the design. They are clues from
+which we can look for patterns.
+
+This leads to the question of "How do we know what people try?". The
+answer is that this app collects data you can share, so we can learn
+from it. Because people don't like sharing data, especially if they
+think it makes them look bad (note: anything you try is valid, not
+wrong), but they love a challenge. So we'll make it a game. Run
+through a series of tasks and the app records what you tried, and
+what did you think about tasks, and solutions.
+
+Have fun, and please share what you learn.
+
+Game on!
+
+
+===Introduction: Part 2
+
+There's more than one way to split a cat, or an input. Sometimes you 
+need to split at every occurrence of a delimiter, or the first, or
+last; other times at a fixed position, or into many parts. Your input
+may be a string or a block of values. Maybe you need to match a	parse
+rule or split and group values on multiple levels.
+
+How many of those methods and their permutations can a single `split`
+function support cleanly? Will it get progressively harder to use and
+understand, or could it actually make things clearer and easier? Not
+just for the writer, but especially for the readers who come after. Is
+it better to have single-purpose functions for each behavior, or a
+single entry point that condenses everything? Are we willing to include
+extra code in Red's runtime, though any one user may only need a subset
+of features, because in-the-large we all win when this very common task
+is normalized across all Red code? Where do we draw the line? Those are
+some of the questions we hope to answer with this app.
+
+Another open question is how we provide documentation, help, and ways
+to explore more heavily loaded interfaces (dialects and dialected
+functions). Programmers are used to reading docs for simple functions,
+what parameters and types they take, and the result they return. Tools
+can also provide auto-complete and Intellisense™, but the closest thing
+to that feature for languages are low code and block programming
+environments. Dialects fall somewhere in between parameterized functions
+and languages that are large, general, and wide in scope.
+
+
+===Introduction: Part 3
+
+The industry also hasn't come up with a definitive answer about how best
+to "learn programming". A CS degree? Coding bootcamp? Disciplined self-
+training and <Coding Katas>(http://codekata.com/)? Many agree that 
+software development is an art and craft as much as it is a science. You
+learn best by doing, starting with simple exercises, building skills,
+and being able to verify your results and understanding. It's called
+practice.
+
+<Live Coding>(https://en.wikipedia.org/wiki/Live_coding) and REPLs play a
+prominent role here. But just as dialects and DSLs are focused versions of
+languages, what is the equivalent for live coding? Tools like
+<Jupyter>(https://jupyter.org/) and <Wolfram Notebooks>(http://www.wolfram.com/notebooks/)
+are one approach.
+
+But the "experiment at a time" approach is different than exploration.
+How do we explore a new area? Other Red \*-lab tools show a way. Give the
+user a tool to poke around and see results, like live coding, but in a 
+more constrained, domain specific way.
+
+
+===Terminology
+
+*Delimiter:* See Separator.
+
+*Dialect:* A domain specific sub-language in the context of a more general language.
+
+*Keyword:* A word with special meaning in a language or dialect.
+
+*Part:* A piece, chunk, segment, slice, or region of a Red series.
+
+*Position:* An offset or index in a Red series. Indexes start at 1, offsets start at 0.
+
+*Separator:* A value specifying the boundary between separate, independent regions.
+
+
+===UI: Goal, Input, Rule, Output
+
+There are three parts to the UI. At the top is the input for the task 
+and your goal. Below that is a field where you write your *split* delimiter.
+When you press *Enter* or click the *Split* button, the input is split
+using your rule and the result is displayed below the field. Result is shown
+color-coded indicating whether you matched the goal. At the bottom
+you can rate the task and write notes, to help us learn what
+things look like to users. Once you get a green light, move on to the
+next task.
+
+Because you only have a field to work with, it may take a few tries
+to understand that it's loading your rule, and doing some special
+handling if you use *compose* or *reduce*. We'll improve this in
+future versions I'm sure.
+
+IMPORTANT NOTE: Do /not/ type "split" or "input" in the rule field.
+Only the rule itself. e.g. if you want to use a comma as the delimiting
+rule, just type *#","* or *comma*.
+
+Save your work. We'll automate this in the future.
+
+
+===Submitting Your Results
+
+
+
+===Menus and keys
+
+*F1:* General help
+
+*F2:* Help for dialected `split`
+
+*F3:* Help for refinement-based `split`
+
+*Enter:* Split, if in Rule field
+
+*Tab:* Move to next element
+
+
+===FutureThought
+
+Splitting is easy. Parsing is hard. For people coming from other
+languages, *parse* is too much to ask if they just want to process
+some data.
+
+Keyword oriented languages and data. Think of a dialect like *draw*
+where keywords play a prominent role, for each item to draw, followed
+by parameters for it. We can design data in a similar way, making it
+variable length in content, but easy to understand by looking for
+markers.
+
+New ways to think about data and how to leverage Red's datatypes.
+Again, *parse* may be more than people want to deal with, and more
+than they need, but need something more flexible than flat blocks
+or key-value structures.
+
+===About
+
+Practice-Split is an experimental tool for the evaluation of the *split*
+function design and more general training tools for the
+<Red Language>(https://www.red-lang.org/).
+
+}

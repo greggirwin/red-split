@@ -12,8 +12,8 @@ help: context [
 	page: none
 	links: clear []
 	
-	content: #include %help.txt
-
+	content: #include %help-new.txt ;%help-refinement.txt ;%help-dialect.txt ;%help.txt
+	
 	rt: make face! [type: 'rich-text size: page-size - 20 line-spacing: 15] ;480x460
 	text-size: func [text][
 		rt/text: text
@@ -277,7 +277,15 @@ help: context [
 		pad -140x5
 		do [f-box/draw: compose [pen gray box 0x0 (f-box/size - 1)]]
 	] ;'modal
-	set 'show-help func [/page pg][
+	
+	set 'show-help func [/page pg /with file][
+		if with [
+			content: #include file  
+			clear sections 
+			clear layouts 
+			clear links  
+			parse detab/size content 3 rules
+		]
 		view/no-wait main
 		show-page self/page: any [pg 1]
 		xy: main/offset + either system/view/screens/1/size/x > 900 [
