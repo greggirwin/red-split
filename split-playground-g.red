@@ -167,7 +167,7 @@ play: context [
         ]
     ]
     
-    load-task: func [n /local t][
+    load-task: func [n /local t sol][
         t: suite/:n
         id/text: rejoin ["Task " form t/id]
         input-text/text: mold t/input
@@ -186,22 +186,19 @@ play: context [
         
         set-ref-checkboxes n
         
-        sol: dialected-delimiter/text: switch/default tasks/:n/dial-status [
-            correct   [tasks/:n/dial-solution]
-            incorrect [last tasks/:n/dial-tries]
-        ][""]
-		
-		;dialected-delimiter/data: load sol
-		
+        sol: dialected-delimiter/text: switch tasks/:n/dial-status [
+            correct   [copy tasks/:n/dial-solution]
+            incorrect [copy last tasks/:n/dial-tries]
+        ]
+        
         unless empty? sol [check-dialected dialected-delimiter]
         
-        sol: refinement-delimiter/text: switch/default tasks/:n/ref-status [
-            correct   [tasks/:n/ref-solution]
+        sol: refinement-delimiter/text: switch tasks/:n/ref-status [
+            correct   [copy tasks/:n/ref-solution]
             incorrect [mold first load last tasks/:n/ref-tries]
-        ][""]
-		refinement-delimiter/data: load sol
-		
+        ]
         unless empty? sol [check-refinements refinement-delimiter]
+
 
         update-stars "star" tasks/:n/difficulty
         update-stars "importance" tasks/:n/importance
@@ -251,15 +248,14 @@ play: context [
         
         if error? set/any 'err try [
             result: mold split load input-text/text make-rule face/data
-            dialected-result/data: result 
+            dialected-result/text: result 
         ][
-            dialected-result/data: "I don't understand that. Maybe try reduce/compose."
+            dialected-result/text: "I don't understand that. Maybe try reduce/compose."
             unknown: true
             ;print mold err
         ]
         
-        append tasks/:cur-task/dial-tries now
-        append tasks/:cur-task/dial-tries append copy [] mold face/data
+        repend tasks/:cur-task/dial-tries [now copy face/text]
         correct?: equal? result mold suite/:cur-task/goal
         dialected-result/color: reduce pick [color-right color-wrong] correct?
         either correct? [
@@ -356,7 +352,7 @@ play: context [
             text "Do you want to save the current session?"
             across
             button "Yes" [answer: true unview]
-            button "No" [answer: false unview]
+            button "No"  [answer: false unview]
             
         ][modal no-min no-max]
         do-events
@@ -381,7 +377,7 @@ play: context [
                 tasks: reduce load file
                 update-task-stats
                 info-text/text: form file
-				;load-task 1
+                load-task 1
             ]    
         ]
     ]
@@ -414,13 +410,12 @@ play: context [
         title "Compare dialected and refinement-based split"
         backdrop linen
         
-         on-create [
-		    make-dir %sessions/
-            start-session
+        on-create [
+            make-dir %sessions/
             if last sort read %sessions/ [load-session/latest]
+            ;load-task 1
             info-text/text: rejoin ["Session: " copy/part session-file find session-file dot]
             set-focus dialected-delimiter
-			;load-task 1
         ]
             
         on-close [save-session]
@@ -432,7 +427,7 @@ play: context [
         style dark-short: field 310 (linen - 5.5.5) font-color black font-size 10 ;disabled
         style label: text 55 font-size 10 font-color black
         style fld: field 320 (linen + 20.20.20) font-color black font-size 10 data off
-		style hlp: button 80X35
+        style hlp: button 80X35
         style btn: button 35 
         style question: text 320 font-color black font-size 10
         style star: base 28x28 linen "☆" font-size 23 font-color gold
@@ -540,14 +535,14 @@ play: context [
         on-unfocus [tasks/:cur-task/notes: copy face/text]
         return
         
-		hlp "Dialect notes" [show-help/with %help-dialect.txt]
-		hlp "Refinements notes" [show-help/with %help-refinement.txt]
         hlp "General Help" [show-help/with %help-new.txt]
-		
+        hlp "Dialect notes" [show-help/with %help-dialect.txt]
+        hlp "Refinements notes" [show-help/with %help-refinement.txt]
+        
         pad 315x10
-        new-btn: button "New"  [if confirm [save-session] new-session]
+        new-btn:  button "New"  [if confirm [save-session] new-session]
         load-btn: button "Load" [if confirm [save-session] load-session]
-        save-btn: button "Save" [save-session]
+        save-btn: button "Save" [save-session] on-create [load-task 1]
         return
         info-text: text 775x18 (linen - 10.10.10) "" font-color black font-size 10
     ]
