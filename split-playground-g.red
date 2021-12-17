@@ -19,7 +19,6 @@ play: context [
     color-right: 60.230.120
     color-wrong: brick + 50.70.40
     session-file: none
-    cur-focus: none
     
     tabs: [dialected-delimiter dialected-btn refinement-delimiter 
            c1 c2 c3 c4 c5 c6 c7 c8 lmt refinement-btn dialected-delimiter
@@ -187,16 +186,21 @@ play: context [
         
         set-ref-checkboxes n
         
-        sol: dialected-delimiter/text: switch tasks/:n/dial-status [
+        sol: dialected-delimiter/text: switch/default tasks/:n/dial-status [
             correct   [tasks/:n/dial-solution]
             incorrect [last tasks/:n/dial-tries]
-        ]
+        ][""]
+		
+		;dialected-delimiter/data: load sol
+		
         unless empty? sol [check-dialected dialected-delimiter]
         
-        sol: refinement-delimiter/text: switch tasks/:n/ref-status [
+        sol: refinement-delimiter/text: switch/default tasks/:n/ref-status [
             correct   [tasks/:n/ref-solution]
             incorrect [mold first load last tasks/:n/ref-tries]
-        ]
+        ][""]
+		refinement-delimiter/data: load sol
+		
         unless empty? sol [check-refinements refinement-delimiter]
 
         update-stars "star" tasks/:n/difficulty
@@ -376,8 +380,8 @@ play: context [
             if exists? file [
                 tasks: reduce load file
                 update-task-stats
-                load-task 1
                 info-text/text: form file
+				;load-task 1
             ]    
         ]
     ]
@@ -389,9 +393,7 @@ play: context [
     ]
     
     start-session: does [
-        make-dir %sessions/
         tasks: init-tasks
-         
         session-file: rejoin [   
             normalize-dir %sessions/
             'practice-split-
@@ -408,9 +410,20 @@ play: context [
     
    ;print "start" 
     
-    view/options compose [
+    view compose [
         title "Compare dialected and refinement-based split"
         backdrop linen
+        
+         on-create [
+		    make-dir %sessions/
+            start-session
+            if last sort read %sessions/ [load-session/latest]
+            info-text/text: rejoin ["Session: " copy/part session-file find session-file dot]
+            set-focus dialected-delimiter
+			;load-task 1
+        ]
+            
+        on-close [save-session]
         
         style task: button 30x30 data off
         style task-status: base 15x3 white data off
@@ -419,6 +432,7 @@ play: context [
         style dark-short: field 310 (linen - 5.5.5) font-color black font-size 10 ;disabled
         style label: text 55 font-size 10 font-color black
         style fld: field 320 (linen + 20.20.20) font-color black font-size 10 data off
+		style hlp: button 80X35
         style btn: button 35 
         style question: text 320 font-color black font-size 10
         style star: base 28x28 linen "☆" font-size 23 font-color gold
@@ -525,32 +539,16 @@ play: context [
         pad 190x-35 task-notes: area 360x70 (linen + 20.20.20)
         on-unfocus [tasks/:cur-task/notes: copy face/text]
         return
-        pad 410x0
-        help-btn: button "Help" [show-help]
-        pad 100x0
+        
+		hlp "Dialect notes" [show-help/with %help-dialect.txt]
+		hlp "Refinements notes" [show-help/with %help-refinement.txt]
+        hlp "General Help" [show-help/with %help-new.txt]
+		
+        pad 315x10
         new-btn: button "New"  [if confirm [save-session] new-session]
         load-btn: button "Load" [if confirm [save-session] load-session]
         save-btn: button "Save" [save-session]
         return
         info-text: text 775x18 (linen - 10.10.10) "" font-color black font-size 10
-    ]
-    [
-        actors: make object! [
-            on-create: function [face event] [
-                start-session
-                if last sort read %sessions/ [load-session/latest]
-                load-task 1
-                info-text/text: rejoin ["Session: " copy/part session-file find session-file dot]
-                cur-focus: 'dialected-delimiter
-                set-focus dialected-delimiter
-            ]
-            
-            on-close: function [face event] [save-session]
-            
-            on-key: function [face event] [
-                ;print ['on-key event/key mold event/flags type? event/key mold event/key]
-                do-events/no-wait
-            ]
-        ]
     ]
 ]
