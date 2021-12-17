@@ -456,7 +456,7 @@ context [
 			]
 			change rule either limit [ct]['any]
 		]
-		parse series [collect rule]
+		parse copy series [collect rule]
 	]
 	
 	set 'split-r function [
@@ -487,7 +487,8 @@ context [
 				value 
 				all [
 					any [before after]
-					any [integer? :dlm block-of-ints? :dlm] 
+					not rule
+					any [ integer? :dlm block-of-ints? :dlm] 
 				]
 			][
 				res: split-delimited/with series dlm reduce [before after first last limit ct]
@@ -499,7 +500,7 @@ context [
 					split-fixed-parts/with  series dlm reduce [first last limit ct]
 				]
 			]
-			block-of-ints? :dlm [
+			all [not rule block-of-ints? :dlm] [
 				res: either group [
 					split-into-groups/with series dlm reduce [first last limit ct]
 				][
