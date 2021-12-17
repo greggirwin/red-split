@@ -412,7 +412,7 @@ play: context [
         
         on-create [
             make-dir %sessions/
-            if last sort read %sessions/ [load-session/latest]
+            either last sort read %sessions/ [load-session/latest][start-session]
             ;load-task 1
             info-text/text: rejoin ["Session: " copy/part session-file find session-file dot]
             set-focus dialected-delimiter
