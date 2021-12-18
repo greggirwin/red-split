@@ -136,7 +136,7 @@ play: context [
     
     set-ref-checkboxes: func [n][
         clear refinements/data
-
+        
         checks: switch tasks/:n/ref-status [
             correct     [tasks/:n/refinements]
             incorrect   [last load last tasks/:n/ref-tries]
@@ -162,6 +162,7 @@ play: context [
         repeat n length? tasks [
             left: to-path  reduce [to-word rejoin ["Stat-d-" n] 'color]  ; dialected
             right: to-path reduce [to-word rejoin ["Stat-r-" n] 'color]  ; refinement-based
+            ;probe type? tasks/:n/dial-status
             set left  do select clrs tasks/:n/dial-status
             set right do select clrs tasks/:n/ref-status
         ]
@@ -198,7 +199,6 @@ play: context [
             incorrect [mold first load last tasks/:n/ref-tries]
         ]
         unless empty? sol [check-refinements refinement-delimiter]
-
 
         update-stars "star" tasks/:n/difficulty
         update-stars "importance" tasks/:n/importance
@@ -246,6 +246,8 @@ play: context [
         append/only call face/data
         dialected-call/text: mold/only call
         
+        tsk: tasks/:cur-task
+        
         if error? set/any 'err try [
             result: mold split load input-text/text make-rule face/data
             dialected-result/text: result 
@@ -255,19 +257,19 @@ play: context [
             ;print mold err
         ]
         
-        repend tasks/:cur-task/dial-tries [now copy face/text]
+        repend tsk/dial-tries [now copy face/text]
         correct?: equal? result mold suite/:cur-task/goal
         dialected-result/color: reduce pick [color-right color-wrong] correct?
         either correct? [
             info-text/text: "Correct!"
-            tasks/:cur-task/dial-status: 'correct
-            tasks/:cur-task/dial-solution: copy face/text
+            tsk/dial-status: 'correct
+            tsk/dial-solution: copy face/text
             set to-path reduce [to-word rejoin ["Stat-d-" cur-task] 'color] color-right
         ][
             info-text/text: either unknown ["Error"]["Wrong!"]
-            unless tasks/:cur-task/dial-status = 'correct [
+            unless tsk/dial-status = 'correct [
                 set to-path reduce [to-word rejoin ["Stat-d-" cur-task] 'color] color-wrong
-                tasks/:cur-task/dial-status: 'incorrect
+                tsk/dial-status: 'incorrect
             ]    
         ]
     ]
@@ -278,16 +280,18 @@ play: context [
     ][
         call: copy [<input>]
         delim: face/data
+        tsk: tasks/:cur-task
+        
         either error? set/any 'err try [do mold delim][
             refinement-result/data: "I don't understand that."
             info-text/text: "Error"
             refinement-call/text: mold/only call
             refinement-result/color: color-wrong
-            append tasks/:cur-task/ref-tries now
-            append/only tasks/:cur-task/ref-tries mold reduce [face/data copy refinements/data]
-            unless tasks/:cur-task/ref-status = 'correct [
+            append tsk/ref-tries now
+            append/only tsk/ref-tries mold reduce [face/data copy refinements/data]
+            unless tsk/ref-status = 'correct [
                 set to-path reduce [to-word rejoin ["Stat-r-" cur-task] 'color] color-wrong
-                tasks/:cur-task/ref-status: 'incorrect
+                tsk/ref-status: 'incorrect
             ]
             if found: find r-data: copy refinements/data 'limit [lmt: found/2 remove next found]
             insert/only call to-path append copy [split] r-data
@@ -316,24 +320,24 @@ play: context [
                 split-r/with load input-text/text :delim refinements/data
             ]
             refinement-call/text: mold/only call
-            append tasks/:cur-task/ref-tries now
-            append/only tasks/:cur-task/ref-tries mold reduce [face/data copy refinements/data]
+            append tsk/ref-tries now
+            append/only tsk/ref-tries mold reduce [face/data copy refinements/data]
             
             correct?: equal? result mold suite/:cur-task/goal
             refinement-result/color: reduce pick [color-right color-wrong] correct?
             either correct? [
                 info-text/text: "Correct!"
-                tasks/:cur-task/ref-status: 'correct
-                tasks/:cur-task/ref-solution: copy face/text
-                tasks/:cur-task/refinements: copy refinements/data
+                tsk/ref-status: 'correct
+                tsk/ref-solution: copy face/text
+                tsk/refinements: copy refinements/data
                 set to-path reduce [to-word rejoin ["Stat-r-" cur-task] 'color] color-right
             ][
                 info-text/text: "Wrong!"
-                unless tasks/:cur-task/ref-status = 'correct [
+                unless tsk/ref-status = 'correct [
                     set to-path reduce [to-word rejoin ["Stat-r-" cur-task] 'color] color-wrong
-                    tasks/:cur-task/ref-status: 'incorrect
+                    tsk/ref-status: 'incorrect
                 ]    
-            ]    
+            ]
         ]    
     ]
     
@@ -375,6 +379,7 @@ play: context [
         if file [
             if exists? file [
                 tasks: reduce load file
+                ;forall tasks [print [mold t: tasks/1/dial-status type? t]]
                 update-task-stats
                 info-text/text: form file
                 load-task 1
