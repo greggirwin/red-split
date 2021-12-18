@@ -206,7 +206,7 @@ help: context [
 	]
 
 	main: layout compose [;/flags
-		title "DiaGrammar help"
+		title "Practice split"
 		on-key [
 			switch event/key [
 				up left [show-page this-page];[show-page this-page - 1]
