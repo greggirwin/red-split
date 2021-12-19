@@ -369,19 +369,19 @@ play: context [
     ]
     
     load-session: func [/latest][
-        start-session
-        file: either latest [
+        ;start-session
+        session-file: either latest [
             rejoin [%sessions/ last sort read %sessions/]            
         ][
             request-file/file %sessions/
         ]
 
-        if file [
-            if exists? file [
-                tasks: reduce load file
+        if session-file [
+            if exists? session-file [
+                tasks: reduce load session-file
                 ;forall tasks [print [mold t: tasks/1/dial-status type? t]]
                 update-task-stats
-                info-text/text: form file
+                info-text/text: form session-file
                 load-task 1
             ]    
         ]
@@ -418,7 +418,6 @@ play: context [
         on-create [
             make-dir %sessions/
             either last sort read %sessions/ [load-session/latest][start-session]
-            ;load-task 1
             info-text/text: rejoin ["Session: " copy/part session-file find session-file dot]
             set-focus dialected-delimiter
         ]
@@ -536,7 +535,7 @@ play: context [
         (difficulty) return
         question "How important is this usecase?" return 
         (importance)
-        pad 190x-35 task-notes: area 360x70 (linen + 20.20.20)
+        pad 190x-35 task-notes: area 370x70 (linen + 20.20.20)
         on-unfocus [tasks/:cur-task/notes: copy face/text]
         return
         
@@ -544,10 +543,11 @@ play: context [
         hlp "Dialect notes" [show-help/with %help-dialect.txt]
         hlp "Refinements notes" [show-help/with %help-refinement.txt]
         
-        pad 315x10
+        pad 390x10
         new-btn:  button "New"  [if confirm [save-session] new-session]
         load-btn: button "Load" [if confirm [save-session] load-session]
-        save-btn: button "Save" [save-session] on-create [load-task 1]
+        on-create [load-task 1]  
+        ;save-btn: button "Save" [save-session] on-create 
         return
         info-text: text 775x18 (linen - 10.10.10) "" font-color black font-size 10
     ]
