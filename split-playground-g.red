@@ -10,7 +10,7 @@ Red [
 
 play: context [
 
-    suite: #include %practice-split-suite-1.red
+    suite: #include %practice-split-suite-2.red
     tasks: make block! 50
     len: length? suite
     over-dial: off
@@ -19,6 +19,8 @@ play: context [
     color-right: 60.230.120
     color-wrong: brick + 50.70.40
     session-file: none
+	default-dir: none
+	mode: 'predefined      ; or 'sandbox
     
     tabs: [dialected-delimiter dialected-btn refinement-delimiter 
            c1 c2 c3 c4 c5 c6 c7 c8 lmt refinement-btn dialected-delimiter
@@ -32,24 +34,37 @@ play: context [
     task-stats: make object! [
         id: #00
         desc: ""                   ; not used
-        input: none
-        goal: none
+        input: ""
+        goal: ""
         hint: ""                   ; not used
         dial-status: 'unattempted  ; [unattempted | wrong | correct]
         dial-solution: ""          ; stores the last correct solution  
-        dial-tries: copy []
+        dial-tries: []
         ref-status: 'unattempted
-        ref-tries: copy []
+        ref-tries: []
         ref-solution: ""           ; stores the last correct solution   
-        refinements: copy []       ; stores the refinements for the correct solution
+        refinements: []       ; stores the refinements for the correct solution
         notes: ""
         difficulty: 0              ; task rating 1 - 10
         importance: 0
         dialected-rating: 0        ; 1 - 10
         refinement-rating: 0       ; 1 - 10
+		category: ""
     ] 
     
-    init-tasks: does [collect [foreach task suite [keep/only to-block make task-stats task]]]
+    init-tasks: does [
+	    suite: switch mode [
+		    predefined [#include %practice-split-suite-2.red]
+			sandbox [collect [loop 21 [keep/only copy []]]]
+		]
+
+	    collect [
+		    foreach task suite [
+			    keep/only to-block make task-stats task
+				
+			]
+		]
+	]
     
     update-status: func [
         n [number!] {Task number}
@@ -162,17 +177,19 @@ play: context [
         repeat n length? tasks [
             left: to-path  reduce [to-word rejoin ["Stat-d-" n] 'color]  ; dialected
             right: to-path reduce [to-word rejoin ["Stat-r-" n] 'color]  ; refinement-based
-            ;probe type? tasks/:n/dial-status
             set left  do select clrs tasks/:n/dial-status
             set right do select clrs tasks/:n/ref-status
         ]
     ]
     
     load-task: func [n /local t sol][
-        t: suite/:n
-        id/text: rejoin ["Task " form t/id]
-        input-text/text: mold t/input
-        goal-text/text: mold t/goal
+        t: tasks/:n
+        id/text: rejoin ["Task " form n]
+		if mode = 'sandbox [insert id/text "Custom "]
+		clear input-text/text
+        unless empty? txt: t/input [input-text/text: mold txt]
+		clear goal-text/text
+		unless empty? txt: t/goal [goal-text/text: mold txt]
         cur-task: n
         clear dialected-delimiter/text
         clear dialected-result/text
@@ -247,6 +264,10 @@ play: context [
         dialected-call/text: mold/only call
         
         tsk: tasks/:cur-task
+		if mode = 'sandbox [
+		    tsk/input: load input-text/text
+			tsk/goal: load goal-text/text
+		]
         
         if error? set/any 'err try [
             result: mold split load input-text/text make-rule face/data
@@ -258,7 +279,8 @@ play: context [
         ]
         
         repend tsk/dial-tries [now copy face/text]
-        correct?: equal? result mold suite/:cur-task/goal
+        ;correct?: equal? result mold suite/:cur-task/goal
+        correct?: equal? result mold load goal-text/text
         dialected-result/color: reduce pick [color-right color-wrong] correct?
         either correct? [
             info-text/text: "Correct!"
@@ -278,29 +300,34 @@ play: context [
         face
         /local result correct? 
     ][
+	    
         call: copy [<input>]
         delim: face/data
         tsk: tasks/:cur-task
+		if mode = 'sandbox [
+		    tsk/input: load input-text/text
+			tsk/goal: load goal-text/text
+		]
         
-        either error? set/any 'err try [do mold delim][
-            refinement-result/data: "I don't understand that."
-            info-text/text: "Error"
-            refinement-call/text: mold/only call
-            refinement-result/color: color-wrong
-            append tsk/ref-tries now
-            append/only tsk/ref-tries mold reduce [face/data copy refinements/data]
-            unless tsk/ref-status = 'correct [
-                set to-path reduce [to-word rejoin ["Stat-r-" cur-task] 'color] color-wrong
-                tsk/ref-status: 'incorrect
-            ]
-            if found: find r-data: copy refinements/data 'limit [lmt: found/2 remove next found]
-            insert/only call to-path append copy [split] r-data
-            if found [append call lmt]
-            refinement-call/text: mold/only call
-            ;print mold err
-        ][
+        ;either error? set/any 'err try [do mold delim][
+        ;    refinement-result/data: "I don't understand that."
+        ;    info-text/text: "Error"
+        ;    refinement-call/text: mold/only call
+        ;    refinement-result/color: color-wrong
+        ;    append tsk/ref-tries now
+        ;    append/only tsk/ref-tries mold reduce [face/data copy refinements/data]
+        ;    unless tsk/ref-status = 'correct [
+        ;        set to-path reduce [to-word rejoin ["Stat-r-" cur-task] 'color] color-wrong
+        ;        tsk/ref-status: 'incorrect
+        ;    ]
+        ;    if found: find r-data: copy refinements/data 'limit [lmt: found/2 remove next found]
+        ;    insert/only call to-path append copy [split] r-data
+        ;    if found [append call lmt]
+        ;    refinement-call/text: mold/only call
+        ;    ;print mold err
+        ;][
             case [
-                find [word! get-word! lit-word! path! get-path! lit-path!] type?/word :delim [append call delim delim: get :delim]
+                find [word! get-word! path! get-path!] type?/word :delim [append call delim delim: get :delim]
                 all [
                     block? delim 
                     empty? intersect refinements/data [value rule]
@@ -323,7 +350,8 @@ play: context [
             append tsk/ref-tries now
             append/only tsk/ref-tries mold reduce [face/data copy refinements/data]
             
-            correct?: equal? result mold suite/:cur-task/goal
+            ;correct?: equal? result mold suite/:cur-task/goal
+            correct?: equal? result mold load goal-text/text
             refinement-result/color: reduce pick [color-right color-wrong] correct?
             either correct? [
                 info-text/text: "Correct!"
@@ -338,7 +366,7 @@ play: context [
                     tsk/ref-status: 'incorrect
                 ]    
             ]
-        ]    
+        ;]    
     ]
     
     move-focus: func [face][set-focus get select tabs face]  ; naive tab support
@@ -368,23 +396,48 @@ play: context [
         rejoin [t/year "-" t/month "-" t/day "-" t/hour "-" t/minute "-" to-integer t/second]
     ]
     
-    load-session: func [/latest][
-        ;start-session
+    load-session: func [
+	    /latest /local files
+	][
+		default-dir: select [predefined: %sessions/ sandbox: %custom-sessions/] mode
+	  
         session-file: either latest [
-            rejoin [%sessions/ last sort read %sessions/]            
+			;files: sort/reverse read %sessions/
+			files: sort/reverse read default-dir
+			unless empty? files [
+			    while [
+			        all [
+			    	    not find/match files/1 "practice-split-"
+			    		not tail? files
+			    	]
+			    ][
+			        files: next files
+			    ]
+				if files [rejoin [default-dir files/1]]            
+			]	
+			
         ][
-            request-file/file %sessions/
+            request-file/file default-dir
         ]
 
-        if session-file [
-            if exists? session-file [
+        either session-file [
+            either exists? session-file [
                 tasks: reduce load session-file
-                ;forall tasks [print [mold t: tasks/1/dial-status type? t]]
-                update-task-stats
-                info-text/text: form session-file
-                load-task 1
-            ]    
-        ]
+				; check the format
+				either empty? difference extract tasks/1 2 words-of task-stats [
+				    update-task-stats
+                    info-text/text: form session-file
+                    load-task 1
+				][
+                    alert "Invalid format! Starting a new session."
+					start-session
+				]	
+            ][
+			    start-session
+			]	
+        ][
+		    start-session
+		]
     ]
     
     save-session: does [
@@ -395,8 +448,9 @@ play: context [
     
     start-session: does [
         tasks: init-tasks
+		update-task-stats
         session-file: rejoin [   
-            normalize-dir %sessions/
+            normalize-dir default-dir
             'practice-split-
             make-filename
             %.red
@@ -408,6 +462,33 @@ play: context [
         update-task-stats
         load-task 1
     ]
+	
+	switch-modes: does [
+	    if confirm [save-session]
+		switch mode [
+		    predefined [
+			    mode: 'sandbox
+				mode-btn/text: "Predefined mode"
+				input-text/enabled?: true
+				input-text/color: (linen + 20.20.20)
+				goal-text/enabled?: true
+				goal-text/color: (linen + 20.20.20)
+				id/text: "Custom task 01"
+				make-dir %custom-sessions/
+				load-session/latest
+			]
+			sandbox [
+			    mode: 'predefined
+				mode-btn/text: "Sandbox mode"
+				input-text/enabled?: false
+				input-text/color: (linen - 5.5.5)
+				goal-text/enabled: false
+				goal-text/color: (linen - 5.5.5)
+				id/text: "Task 01"
+				load-session/latest
+			]
+		]
+	]
     
    ;print "start" 
     
@@ -427,7 +508,8 @@ play: context [
         style task: button 30x30 data off
         style task-status: base 15x3 white data off
         style lbl: text 375 font-color black font-size 10
-        style dark: text 360 (linen - 5.5.5) font-color black font-size 12
+        ;style dark: text 360 (linen - 5.5.5) font-color black font-size 12
+        style dark: field 360 (linen - 5.5.5) disabled font-color black font-size 12
         style dark-short: field 310 (linen - 5.5.5) font-color black font-size 10 ;disabled
         style label: text 55 font-size 10 font-color black
         style fld: field 320 (linen + 20.20.20) font-color black font-size 10 data off
@@ -441,7 +523,9 @@ play: context [
         across space 5x5 (task-buttons) return
         across (task-boxes) return
         across
-        id: text "Task 01" font-size 15 font-color black
+        id: text 200 "Task 01" font-size 15 font-color black
+		pad 470x5 
+		mode-btn: button "Sandbox mode" [switch-modes]
         return pad 0x-10
         across
         panel linen [
