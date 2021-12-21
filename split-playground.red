@@ -3,7 +3,7 @@ Red []
 #include %split-r.red
 #include %client-tools.red
 context [
-	suite: #include %practice-split-suite-1.red
+	suite: #include %practice-split-suite-2.red
 	i: none
 	tests: collect [repeat i length? suite [keep rejoin ["Task #" i]]]
 	make-rule: function [
@@ -89,11 +89,11 @@ context [
 			at 0x0 refinements: field hidden data []
 			refinement-delimiter: field 300 font-size 10 [
 				local [result]
-				;probe type? 
 				delim: face/data
 				call: copy [<input>]
+				
 				case [
-					find [word! get-word! lit-word! path! get-path! lit-path!] type?/word :delim [append call delim delim: get :delim]
+					find [word! get-word! path! get-path!] type?/word :delim [append call delim delim: get :delim]
 					all [
 						block? delim 
 						empty? intersect refinements/data [value rule]
@@ -110,7 +110,7 @@ context [
 					if found: find r-data: copy refinements/data 'limit [lmt: found/2 remove next found]
 					insert/only call to-path append copy [split] r-data
 					if found [append call lmt]
-					split-r/with load input-series/text :delim refinements/data
+					split-r/with load input-series/text copy :delim refinements/data
 				]
 				ref-call/text: mold/only call
 				refinement-result/color: reduce pick [green red] equal? result selected/goal
