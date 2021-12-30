@@ -280,7 +280,7 @@ help: context [
 	
 	set 'show-help func [/page pg /with file][
 		if with [
-			content: #include file  
+			content: do file  ;#include
 			clear sections 
 			clear layouts 
 			clear links  
