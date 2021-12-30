@@ -118,23 +118,4 @@ Red []
 		input: [1 2 3 4 5 6 7 8 9]
 		goal: [[1 2] [3] [4 5] [6] [7 8] [9]]
 	]
-	
-	
-	
-;	[
-;	    id: #18
-;	    input: {[1 2.3 /a word "str" #iss x: :y]}
-;	]
-;	[
-;	    id: #19
-;	    input: {[1 2.3 /a word "str" #iss x: :y <T>]}
-;	]
-;	[
-;	    id: #20
-;	    input: "[1 2 3 space 4 5 6 space 7 8 9]"
-;	]
-;	[
-;	    id: #21
-;	    input: {[1 2.3 /mark word "str" /mark #iss x: :y]}
-;	]
 ]

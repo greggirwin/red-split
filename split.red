@@ -59,7 +59,7 @@ dbg: either all [trace][:print][:none]
 ;	]
 ;]
 
-map-each: function [
+map-each: func [
 	"Evaluates body for each value(s) in a series, returning all results."
 	'word [word! block!] "Word, or words, to set on each iteration"
 	data [series! map!] 

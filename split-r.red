@@ -197,10 +197,12 @@ context [
 					append/only result copy series
 				]
 			]
-			either limit [
-				loop ct compose [(find-next) unless pos [append result copy series series: tail series break] (keep-found)]
-			][
-				while find-next keep-found
+			do [
+				either limit [
+					loop ct compose [(find-next) unless pos [append result copy series series: tail series break] (keep-found)]
+				][
+					while find-next keep-found
+				]
 			]
 			if not tail? series [append/only result copy series]
 		]
@@ -292,7 +294,7 @@ context [
 				]
 				any [res  head? stop]
 			] 
-			case cases
+			do [case cases]
 			either res [
 				if not all [before head? pos][
 					append/only result copy/part head series either after [pos1][pos]
@@ -302,9 +304,11 @@ context [
 				append/only result copy series
 			]
 		][
-			case [
-				limit [loop ct compose [until find-next  (keep-found)]]
-				'else [while [until find-next all [res not tail? pos]] keep-found]
+			do [
+				case [
+					limit [loop ct compose [until find-next  (keep-found)]]
+					'else [while [until find-next all [res not tail? pos]] keep-found]
+				]
 			]
 			if not tail? series [append/only result copy series]
 		]
