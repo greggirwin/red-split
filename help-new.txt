@@ -125,6 +125,10 @@ Save your work. We'll automate this in the future.
 
 *F3:* Help for refinement-based `split`
 
+*PgUp:* Previous task
+
+*PgDn:* Next task
+
 *Enter:* Split, if in Rule field
 
 *Tab:* Move to next element
