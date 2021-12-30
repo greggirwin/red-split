@@ -115,6 +115,22 @@ Save your work. We'll automate this in the future.
 
 ===Submitting Your Results
 
+The results are kept in the *%sessions* folder which is automatically created.
+The last session is loaded at start, if one exists, or a new session is 
+started. You can always start a new session or load an existing one.
+
+Please spend some time to rate the tasks, the solutions you came up with
+for both dialected and refinements-based split, as well as the importance
+of the type of split described by the task.
+
+When you think you are ready, go to *%sessions* folder, select the session file
+you want to submit and share it with Red team by your favorite channel of 
+communication.
+
+If you want to practice splitting your own test cases, you can enter the
+"Sandbox mode". In such cases the sessions are stored in *%custom-sessions*
+folder. You can share these results too.
+
 
 
 ===Menus and keys
