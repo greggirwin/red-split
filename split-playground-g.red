@@ -2,6 +2,7 @@ Red [
     Title:  "Comparative playground for splitting functions in Red"
     Author: "Galen Ivanov"
     Notes:  "Based on code by Toomas Vooglaid and Gregg Irwin"
+    Needs:  view
 ]
 
 #include %split.red
