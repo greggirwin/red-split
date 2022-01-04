@@ -57,7 +57,7 @@ multi-split: [
 keyword: [
 	'every | 'once | 'as-delim
 	| 'into | 'parts
-	| 'first | 'next | 'then | 'by ("first/next/then/by go with multi-split")
+	| 'first | 'last | 'next | 'then | 'by ("first/next/then/by go with multi-split")
 	| 'times ("Goes with count")
 	| ordinal
 	| delim-modifier
