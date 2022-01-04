@@ -14,14 +14,34 @@ play: context [
     suite: #include %practice-split-suite-2.red
     tasks: make block! 50
     len: length? suite
-    over-dial: off
-    over-ref: off
-    prompt: "Enter the delimiter and press <Enter> to split"
-    color-right: 60.230.120
+    
+	over-dial: 
+    over-ref: 
+	over-mode:
+	over-new: 
+	over-load: off 
+	
+	color-right: 60.230.120
     color-wrong: brick + 50.70.40
     session-file: none
     default-dir: none
     mode: 'predefined   ; or 'sandbox
+    
+	prompt: "Enter the delimiter and press <Enter> to split"
+	mode-prompt: [
+	    predefined: "Switch to sandbox mode to play with your own test cases"
+		sandbox: "Switch to predefined tasks mode"
+	]
+	new-prompt: [
+	    predefined: "Start a new predefined session"
+		sandbox: "Start a new sandbox session"
+	]
+	load-prompt: [
+	    predefined: "Load an existing predefined session"
+		sandbox: "Load an existing sandbox session"
+	]
+	
+    
     
     tabs: [dialected-delimiter dialected-btn refinement-delimiter 
            c1 c2 c3 c4 c5 c6 c7 c8 lmt refinement-btn dialected-delimiter
@@ -529,6 +549,7 @@ play: context [
         id: text 200 "Task 01" font-size 15 font-color black
         pad 470x5 
         mode-btn: button "Sandbox mode" [switch-modes]
+		on-over [info-text/text: either over-mode: not over-mode [select mode-prompt mode][""]]
         return pad 0x-10
         across
         panel linen [
@@ -573,7 +594,7 @@ play: context [
             lbl "Please specify delimiter and select appropriate refinements:"
             pad 0x-10 across
             refinement-delimiter: fld [check-refinements face]
-            on-over [info-text/text: either over-dial: not over-dial [prompt][""]]
+            on-over [info-text/text: either over-ref: not over-ref [prompt][""]]
             on-key-down [if event/key = tab [move-focus 'refinement-delimiter]]
             refinement-btn: btn "Split" [check-refinements refinement-delimiter]
             on-key-down [if event/key = tab [move-focus 'refinement-btn]]
@@ -632,7 +653,9 @@ play: context [
         
         pad 390x10
         new-btn:  button "New"  [if confirm [save-session] new-session]
+		on-over [info-text/text: either over-new: not over-new [select new-prompt mode][""]]
         load-btn: button "Load" [if confirm [save-session] load-session]
+		on-over [info-text/text: either over-load: not over-load [select load-prompt mode][""]]
         on-create [load-task 1]  
         return
         info-text: text 775x18 (linen - 10.10.10) "" font-color black font-size 10
