@@ -12,7 +12,7 @@ help: context [
 	page: none
 	links: clear []
 	
-	content: #include %help-new.txt ;%help-refinement.txt ;%help-dialect.txt ;%help.txt
+	content: help-new ;#include %help-new.txt ;%help-refinement.txt ;%help-dialect.txt ;%help.txt
 	
 	rt: make face! [type: 'rich-text size: page-size - 20 line-spacing: 15] ;480x460
 	text-size: func [text][
@@ -278,9 +278,9 @@ help: context [
 		do [f-box/draw: compose [pen gray box 0x0 (f-box/size - 1)]]
 	] ;'modal
 	
-	set 'show-help func [/page pg /with file][
+	set 'show-help func [/page pg /with text][
 		if with [
-			content: do file  ;#include
+			content: text  ;#include
 			clear sections 
 			clear layouts 
 			clear links  

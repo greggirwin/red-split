@@ -7,11 +7,15 @@ Red [
 
 #include %split.red
 #include %split-r.red
+help-new: #include %help-new.txt
+help-dia: #include %help-dialect.txt
+help-ref: #include %help-refinement.txt
 #include %help.red
+
 
 play: context [
 
-    suite: #include %practice-split-suite-2.red
+    suite: copy orig-suite: #include %practice-split-suite-2.red
     tasks: make block! 50
     len: length? suite
     
@@ -75,7 +79,7 @@ play: context [
     
     init-tasks: does [
         suite: switch mode [
-            predefined [#include %practice-split-suite-2.red]
+            predefined [orig-suite]
             sandbox [collect [loop 21 [keep/only copy []]]]
         ]
 
@@ -647,9 +651,9 @@ play: context [
         on-unfocus [tasks/:cur-task/notes: copy face/text]
         return
         
-        hlp "General Help" [show-help/with %help-new.txt]
-        hlp "Dialect notes" [show-help/with %help-dialect.txt]
-        hlp "Refinements notes" [show-help/with %help-refinement.txt]
+        hlp "General Help" [show-help/with help-new];%help-new.txt]
+        hlp "Dialect notes" [show-help/with help-dia];%help-dialect.txt]
+        hlp "Refinements notes" [show-help/with help-ref];%help-refinement.txt]
         
         pad 390x10
         new-btn:  button "New"  [if confirm [save-session] new-session]
@@ -673,9 +677,9 @@ play: context [
             on-close: function [face event] [save-session]
             on-key: function [face event] [
                 switch event/key [
-                    F1  [show-help/with %help-new.txt]
-                    F2  [show-help/with %help-dialect.txt]
-                    F3  [show-help/with %help-refinement.txt]
+                    F1  [show-help/with help-new];%help-new.txt]
+                    F2  [show-help/with help-dia];%help-dialect.txt]
+                    F3  [show-help/with help-ref];%help-refinement.txt]
                     page-up    [prev-task]
                     page-down  [next-task]
                 ]
