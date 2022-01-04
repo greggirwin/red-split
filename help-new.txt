@@ -127,10 +127,12 @@ When you think you are ready, go to *%sessions* folder, select the session file
 you want to submit and share it with Red team by your favorite channel of 
 communication.
 
-If you want to practice splitting your own test cases, you can enter the
-"Sandbox mode". In such cases the sessions are stored in *%custom-sessions*
-folder. You can share these results too.
+===Sandbox mode
 
+If you want to practice splitting your own test cases, you can enter the
+"Sandbox mode". The input and goal fields become active so that you can enter
+the data you want to split and the expected goal. In this mode the sessions
+are stored in *%custom-sessions* folder. You can share these results too.
 
 
 ===Menus and keys
