@@ -3,6 +3,7 @@ Red [
     Author: "Galen Ivanov"
     Notes:  "Based on code by Toomas Vooglaid and Gregg Irwin"
     Needs:  view
+    Icon:   %split-lab.ico
 ]
 
 #include %split.red
