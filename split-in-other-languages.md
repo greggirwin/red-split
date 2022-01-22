@@ -120,4 +120,4 @@ The slice returned by this method consists of all the substrings of s not contai
 
 See also:
 
-- [Haslkell](https://hackage.haskell.org/package/split-0.2.3.4/docs/Data-List-Split.html)
+- [Haskell](https://hackage.haskell.org/package/split-0.2.3.4/docs/Data-List-Split.html)
