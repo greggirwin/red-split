@@ -117,3 +117,7 @@ The slice returned by this method consists of all the substrings of s not contai
 </td><td> Returns the longest common prefix together with the tails of l and r with the common prefix removed.</br>Example:</br>(split-common-prefix '(a b c d) '(a b x y z))</br>'(a b)</br>'(c d)</br>'(x y z)
 </td></tr>
 </table>
+
+See also:
+
+- [Haslkell](https://hackage.haskell.org/package/split-0.2.3.4/docs/Data-List-Split.html)
