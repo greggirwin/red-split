@@ -591,18 +591,20 @@ split-ctx: context [
 				return split-once/with series delim opts
 			]
 		]
-				
+
+		; rule-core is used inside an `any` rule to process the input
 		rule-core: case [
 			before [[
-				keep copy v [opt [ahead delim skip] to [delim | end]]
+				end
+				| keep copy v [opt [ahead delim skip] to [delim | end]]
 			]]
 			after  [[
-				keep copy v [thru [delim | end]]
+				end
+				| keep copy v [thru [delim | end]]
 			]]
 			'else  [[
-				keep copy v [to [delim | end]]
-				delim
-				[end keep (make series 0) | none]
+				end keep (make series 0)
+				| copy v [to [delim | end]] keep (v)  delim
 			]]
 		]
 		either count [

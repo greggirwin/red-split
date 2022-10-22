@@ -12,7 +12,8 @@ help: context [
 	page: none
 	links: clear []
 	
-	content: help-new ;#include %help-new.txt ;%help-refinement.txt ;%help-dialect.txt ;%help.txt
+	;content: help-new ;#include %help-new.txt ;%help-refinement.txt ;%help-dialect.txt ;%help.txt
+	content: #include %help-new.txt ;%help-refinement.txt ;%help-dialect.txt ;%help.txt
 	
 	rt: make face! [type: 'rich-text size: page-size - 20 line-spacing: 15] ;480x460
 	text-size: func [text][
