@@ -410,7 +410,8 @@ view/options [
 	style txt: text font-size 12
 	style field: field 400x30 font-size 12
 	style content: text 400x160 font-color navy font-size 12
-	style vote: toggle 50 left top font-size 12
+	;style vote: toggle 50 left top font-size 12
+	style vote: toggle 50 top font-size 12
 	style timer: base 0x0 rate 0:0:1 
 	
 	lbl "Task ID:" txt-ID: txt 350 "___"
@@ -426,7 +427,7 @@ view/options [
 	;txt-goal: content 400x175 {["a" "b" "c"]} return
 	
 	lbl "How do you want to split? :" fld-rule: field on-enter [split-it]  hint ""
-	button "Split (F5)" [split-it] return
+	button "Split (Enter | F5)" [split-it] return
 	pad 210x0 lbl-rule-err: txt 400 font-color red return
 	lbl "Here is your result:" ;return
 	;pad 20x0

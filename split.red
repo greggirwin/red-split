@@ -406,11 +406,12 @@ split-once: function [
 
 	either all [integer? delim  not any [value before after]] [
 		dbg 'split-once-at-index
-		either last [
-			split-at-index/last series :delim
-		][
-			split-at-index series :delim
-		]
+		split-at-index/:last series :delim
+;		either last [
+;			split-at-index/last series :delim
+;		][
+;			split-at-index series :delim
+;		]
 	][
 		; A big question is whether to use find/only or make it a refinement. 
 		; Users can double block if needed. e.g. [[a b c]] = /only [a b c]
@@ -488,6 +489,7 @@ split-ctx: context [
 		]
 	]
 
+	; Delim types are all values EXCEPT those listed here.
 	delim-types: exclude default! make typeset! [integer! block! any-function! event!]
 
 	;-------------------------------------------------------------------------------
@@ -560,6 +562,12 @@ split-ctx: context [
 		;	   the more common case than using them as values, which can
 		;	   still then be done with AS-DELIM.
 		if paren? :delim [delim: do delim]
+		;?? We can GET datatype/typeset values here as well.
+		if all [
+			word? delim
+			dlm-type: get/any delim
+			any [datatype? :dlm-type  typeset? :dlm-type]
+		][delim: dlm-type]
 		
 		; This is only here because /last isn't as easy to do with parse.
 		; Possible of course, just not as clean or obvious. Have to
@@ -720,7 +728,8 @@ split-ctx: context [
 ;			| set =sub-rule any-type!
 ;		]
 		multi-split=: [
-			;!! Use any-type! while exploring ideas
+			;!! Use any-type! while exploring ideas, though it does mean non-atomic
+			;!! rules have to be in a sub-block.
 			;opt 'first 'by set =sub-rule any-type! (
 			opt 'first 'by [char-word= (=sub-rule: =char-word) | set =sub-rule any-type!] (
 			;opt 'first 'by delimiter= (=sub-rule: =delimiter) (
@@ -752,6 +761,7 @@ split-ctx: context [
 		;!! words referring to standard char! values may benefit from special 
 		;	treatment. You can then use 'as-delim to treat them as words when
 		;	needed, but those will likely be far less common.
+		;?? Same question for datatypes and typeset words.
 		char-word=: [
 			set =char-word [
 				'null | 'newline | 'slash | 'escape | 'comma | 'lf | 'cr
@@ -764,7 +774,7 @@ split-ctx: context [
 		]
 		delimiter=: [
 			;'as-delim any-type! ("Treat as literal value, not position or rule")
-			'as-delim set =dlm [integer! | block! | word! | paren!] ( ;("Treat as literal value, not position, rule, or char! keyword")
+			['as-delim | 'quote] set =dlm [integer! | block! | word! | paren!] ( ;("Treat as literal value, not position, rule, or char! keyword")
 				=dlm: reduce ['quote =dlm]
 			)
 			| char-word= (=dlm: =char-word)
@@ -775,6 +785,7 @@ split-ctx: context [
 				| unset!
 			  ]
 			  set =dlm any-type!
+			  ; TBD: GET datatype/typeset words?
 		]
 		position=: [set =pos integer!] ; TBD enforce `positive?`
 		delim-modifier=: [

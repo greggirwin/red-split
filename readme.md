@@ -26,7 +26,7 @@ serve the stated purpose.
 
 ## Purpose of splitting
 
-Abstract-theoretically splitting should enable breaking any series into
+Theoretically splitting should enable breaking any series into
 chunks according to any criteria appropriate for given series.
 
 Practically it should, according to Red philosophy, make common cases of
@@ -309,7 +309,7 @@ NAME: [
 part of split: [gregg]
 separate:      []
 
-### Should predicates be treated by as group filters or delimiters?
+### Should predicates be treated as group filters or delimiters?
 
 group: [gregg]
 delim: [toomas]
@@ -331,6 +331,10 @@ Or
     ;== [[] [[a] []] [[b] [c]]]
     split/group "a,b.c,d." [comma dot]
     ;== [["a" "b"] ["c" "d"] []]
+    
+Note that a primary use case here is datatypes and typesets for block data.
+Those can be handled without a predicate, but by type matching, to treat
+them as delimiters.
 
 ### Should predicate funcs take one or two args (value or [value series])?
 

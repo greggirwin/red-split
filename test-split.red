@@ -375,6 +375,12 @@ do [
 		split {{key-a=1^/key-b=2^/key-c=3}}
 		[by newline then by #"="]
 	] [["{key-a" "1"] ["key-b" "2"] ["key-c" "3}"]]
+		
+	test [
+		split "A split sentence.And another."
+		[by [dot up to 2 times] then by space]
+	] [["A" "split" "sentence"] ["And" "another"]]
+
 
 ;	test [
 ;		split {{key-a=1^/key-b=2^/key-c=3}}
