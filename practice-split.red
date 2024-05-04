@@ -82,20 +82,20 @@ cycle: function ['series [word!] /prev][
 ;	vote:  none
 ;)
 task-proto: object [
-	id:    #[none]
+	id:    #(none)
 	desc:  ""
 	input: "" 		; string or block
 	goal:  []  		; expected output, always a block
 	hint:  ""		; clues to keyword use, etc., that may apply
-	time:  #[none]	; log start/end times for each "visit" to a task?
+	time:  #(none)	; log start/end times for each "visit" to a task?
 	ticks: 0		; 1 tick = 1 second; how long has this task taken so far?
 	unticks: 0		; ticks while paused ???
 	done?: no		; set to yes when result = goal
 	tries: []		; be able to see what they actually tried
 					; sub-blocks of [time rule]
 	notes: ""		; [input goal rule note]
-	rating: #[none] ; easy to hard
-	vote:   #[none]	; like/dislike
+	rating: #(none) ; easy to hard
+	vote:   #(none)	; like/dislike
 ]
 ;extend task <suite-task>
 

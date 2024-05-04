@@ -43,7 +43,7 @@ save-test: has [new-entry] [
 		alert "Please run the test before saving."
 		exit
 	]
-	new-entry: #()
+	new-entry: #[]
 	new-entry/input: input
 	new-entry/rule: rule
 	new-entry/output: output
@@ -192,15 +192,14 @@ comment {
 	muscle-memory 
 }
 
-task: #(
+task: #[
 	desc: ""
 	input: "" 	; string or block
 	goal: []  	; expected output, always a block
 	time: none
 	tries: []	; be able to see what they actually tried
 	report: none	; [input goal rule note]
-)
-
+]
 help-text: {
 	Sharpen your skills.
 	Hone that code to a fine edge. 
